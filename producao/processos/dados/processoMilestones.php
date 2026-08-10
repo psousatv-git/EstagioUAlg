@@ -165,7 +165,7 @@ function definirFases(array $ctx): array
      */
     $dispensas = [
 
-        'Ajuste Direto Simplificado' => [5, 11, 12, 13, 16, 17, 18, 19, 26, 27, 28, 29, 30],
+        'Ajuste Direto Simplificado' => [5, 11, 12, 13, 18, 19, 26, 27, 28, 29, 30],
         'Aquisição de Serviços'      => [11, 12, 19, 26, 27, 29, 30],
         'Aquisição de Bens'          => [11, 12, 19, 26, 28, 29, 30],
         'Empreitada'                 => [11, 12, 27, 28],
@@ -195,7 +195,7 @@ function definirFases(array $ctx): array
         $ctx['valorMovimento4'] < 10000
     ) {
 
-        $movimentos = array_diff($movimentos, [17]);
+        $movimentos = array_diff($movimentos, [16, 17]);
 
     }
 
