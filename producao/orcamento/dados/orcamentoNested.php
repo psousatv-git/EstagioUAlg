@@ -165,7 +165,7 @@ try {
         WHERE o.orc_rubrica = :itemProcurado
           AND o.orc_ano = :anoCorrente
           AND p.proces_report_valores = 1
-          AND f.fact_tipo IN ('FTN', 'FTC', 'NC')
+          AND f.fact_tipo IN ('FTN', 'FTC', 'NC', 'REF', 'IND')
           AND YEAR(f.fact_data) = :anoFatura
         ORDER BY
             f.fact_proces_check,

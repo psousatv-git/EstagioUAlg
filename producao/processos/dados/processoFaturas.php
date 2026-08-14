@@ -15,7 +15,14 @@ $processoFaturas = "SELECT *
 $stmt = $myConn->query($processoFaturas);
 $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$processoFaturasAcumulado = array_sum(array_column($data, "fact_valor"));
+$processoFaturasAcumulado = array_sum(
+  array_column(
+      array_filter($data, function ($fatura) {
+          return !in_array($fatura['fact_tipo'], ['NC', 'IND']);
+      }),
+      'fact_valor'
+  )
+);
 
 //Faturação
 echo "
