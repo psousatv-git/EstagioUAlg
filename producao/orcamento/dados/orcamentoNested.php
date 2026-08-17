@@ -127,7 +127,7 @@ try {
         WHERE o.orc_rubrica = :itemProcurado
           AND o.orc_ano = :anoCorrente
           AND p.proces_report_valores = 1
-          AND h.historico_descr_cod IN (9, 14)
+          AND h.historico_descr_cod IN (9, 14, 100)
         GROUP BY h.historico_proces_check
     ";
 

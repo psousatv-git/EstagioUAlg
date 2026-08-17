@@ -902,6 +902,46 @@ $(document).ready(function () {
         'Dez.'
       ];
 
+      // ======================================================
+      // PLUGIN PARA MOSTRAR OS VALORES EM CIMA DAS COLUNAS
+      // ======================================================
+      const pluginValores = {
+        id: 'pluginValoresFaturacao',
+
+        afterDatasetsDraw(chart) {
+          const { ctx } = chart;
+
+          ctx.save();
+
+          ctx.font = 'bold 16px Arial';
+          ctx.fillStyle = '#212529';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+
+          const dataset = chart.data.datasets[0];
+          const meta = chart.getDatasetMeta(0);
+
+          meta.data.forEach((barra, index) => {
+            const valor = Number(dataset.data[index]) || 0;
+
+            // Não mostra "0 €" nos meses sem faturação
+            if (valor === 0) {
+              return;
+            }
+
+            const texto = formatCurrency(valor);
+
+            ctx.fillText(
+              texto,
+              barra.x,
+              barra.y - 8
+            );
+          });
+
+          ctx.restore();
+        }
+      };
+
       const grafico = new Chart(contexto, {
         type: 'bar',
 
@@ -912,15 +952,31 @@ $(document).ready(function () {
             {
               label: 'Faturação',
               data: valoresMensais,
+
+              backgroundColor: '#17a2b8',
+              borderColor: '#117a8b',
               borderWidth: 1
             }
           ]
         },
 
+        plugins: [
+          pluginValores
+        ],
+
         options: {
           responsive: false,
           animation: false,
           maintainAspectRatio: false,
+
+          layout: {
+            padding: {
+              top: 30,
+              right: 10,
+              left: 10,
+              bottom: 10
+            }
+          },
 
           plugins: {
             legend: {

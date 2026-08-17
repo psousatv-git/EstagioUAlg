@@ -10,9 +10,11 @@ function cartoes(endereco) {
     }).done(function(data) {
         var containerInvestimentos = document.getElementById('cartoesInvestimentos');
         var containerGastos = document.getElementById('cartoesGastos');
+        var containerProtocolos = document.getElementById('cartoesProtocolos');
 
         containerInvestimentos.innerHTML = "";
         containerGastos.innerHTML = "";
+        containerProtocolos.innerHTML = "";
 
         data.forEach(dados => {
             let classeCartao, iconeCartao;
@@ -65,8 +67,11 @@ function cartoes(endereco) {
 
             if (dados.tipo === 'Investimento') {
                 containerInvestimentos.innerHTML += cartao;
+            } else if(dados.tipo === 'Gastos' && dados.item === 'SubContratos') {
+                containerProtocolos.innerHTML += cartao;
             } else {
                 containerGastos.innerHTML += cartao;
+                
             }
         });
     });
