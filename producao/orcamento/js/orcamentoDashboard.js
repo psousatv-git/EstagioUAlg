@@ -5,6 +5,63 @@
 var anoCorrente = new Date().getFullYear();
 
 
+// ======================================================
+    // FUNÇÕES AUXILIARES
+    // ======================================================
+
+    function numero(valor) {
+        const resultado = Number(valor);
+        return Number.isFinite(resultado) ? resultado : 0;
+    }
+
+
+    function moeda(valor) {
+        return new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(numero(valor));
+    }
+
+
+    function textoPDF(valor) {
+
+        if (valor === null || valor === undefined) return '';
+
+        return String(valor)
+            .replace(/\u00A0/g, ' ')
+            .replace(/[^\x20-\xFFÀ-ÿ]/g, '');
+    }
+
+
+    function dataPT(valor) {
+        if (!valor) {return '';}
+
+        const data = String(valor).substring(0, 10);
+        const partes = data.split('-');
+      
+        if (partes.length !== 3) {return escapeHtml(valor);}
+      
+        const [ano, mes, dia] = partes;
+      
+        return `${dia}-${mes}-${ano}`;
+    }
+
+
+    function expediente(valor) {
+        if (!valor) {return '';}
+
+        const texto = String(valor).trim();
+      
+        if (/^[A-Za-z0-9]\.\d+\.\d+$/.test(texto)) {
+          return texto;
+        }
+      
+        const prefixo = texto.charAt(0);
+        const registo = texto.slice(1, -2);
+        const ano = texto.slice(-2);
+        
+      
+        return `${prefixo}.${registo.padStart(5, '0')}.${ano}`;
+
+    }
+
 // ==========================================================
 // CARTÕES
 // ==========================================================
@@ -17,9 +74,14 @@ function cartoes(endereco) {
         contentType: 'application/json'
     }).done(function(data) {
 
-        var containerInvestimentos = document.getElementById('cartoesInvestimentos');
-        var containerGastos = document.getElementById('cartoesGastos');
-        var containerProtocolos = document.getElementById('cartoesProtocolos');
+        var containerInvestimentos =
+            document.getElementById('cartoesInvestimentos');
+
+        var containerGastos =
+            document.getElementById('cartoesGastos');
+
+        var containerProtocolos =
+            document.getElementById('cartoesProtocolos');
 
         containerInvestimentos.innerHTML = "";
         containerGastos.innerHTML = "";
@@ -27,7 +89,8 @@ function cartoes(endereco) {
 
         data.forEach(dados => {
 
-            let classeCartao, iconeCartao;
+            let classeCartao;
+            let iconeCartao;
 
             let adjudicado_percent =
                 dados.adjudicado === 0 && dados.faturado === 0 ? 0 :
@@ -40,69 +103,927 @@ function cartoes(endereco) {
                 dados.faturado / dados.previsto;
 
             if (previsto_percent > 0.85) {
+
                 classeCartao = 'bg-danger text-white';
                 iconeCartao = 'fa fa-thumbs-down';
+
             } else if (previsto_percent > 0.60) {
+
                 classeCartao = 'bg-warning text-white';
                 iconeCartao = 'fa fa-cog fa-spin';
+
             } else {
+
                 classeCartao = 'bg-success text-white';
                 iconeCartao = 'fa fa-smile';
             }
 
+
             let cartao = `
+
                 <div class="col-sm-6 col-md-3 mb-2">
-                    <div class="card h-100 ${classeCartao}" onclick="orcamentoNested('${dados.cod}')">
+
+                    <div
+                        class="card h-100 ${classeCartao}"
+                        onclick="orcamentoNested('${dados.cod}')"
+                    >
+
                         <div class="d-flex px-3 py-2 small">
 
                             <div class="flex-grow-1 text-left">
-                                <p class="mb-1 font-weight-bold">${dados.item}</p>
+
+                                <p class="mb-1 font-weight-bold">
+                                    ${dados.item}
+                                </p>
 
                                 <div>
+
                                     <h6>
-                                        ${Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(dados.adjudicado)} -
-                                        ${Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(dados.faturado)} -
-                                        <span>${Intl.NumberFormat("de-DE", {
-                                            style: "percent",
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2
-                                        }).format(adjudicado_percent)}</span>
+
+                                        ${Intl.NumberFormat(
+                                            "de-DE",
+                                            {
+                                                style: "currency",
+                                                currency: "EUR"
+                                            }
+                                        ).format(dados.adjudicado)}
+
+                                        -
+
+                                        ${Intl.NumberFormat(
+                                            "de-DE",
+                                            {
+                                                style: "currency",
+                                                currency: "EUR"
+                                            }
+                                        ).format(dados.faturado)}
+
+                                        -
+
+                                        <span>
+
+                                            ${Intl.NumberFormat(
+                                                "de-DE",
+                                                {
+                                                    style: "percent",
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2
+                                                }
+                                            ).format(adjudicado_percent)}
+
+                                        </span>
+
                                     </h6>
+
                                 </div>
 
+
                                 <div>
+
                                     <h5>
-                                        ${Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(dados.previsto)}
+
+                                        ${Intl.NumberFormat(
+                                            "de-DE",
+                                            {
+                                                style: "currency",
+                                                currency: "EUR"
+                                            }
+                                        ).format(dados.previsto)}
+
                                         <span class="h6">
-                                            - ${Intl.NumberFormat("de-DE", {
-                                                style: "percent",
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2
-                                            }).format(previsto_percent)}
+
+                                            -
+
+                                            ${Intl.NumberFormat(
+                                                "de-DE",
+                                                {
+                                                    style: "percent",
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2
+                                                }
+                                            ).format(previsto_percent)}
+
                                         </span>
+
                                     </h5>
+
                                 </div>
+
                             </div>
 
+
                             <div class="pl-2 mt-auto">
+
                                 <i class="fas ${iconeCartao} fa-3x"></i>
+
                             </div>
 
                         </div>
+
                     </div>
+
                 </div>
             `;
 
+
             if (dados.tipo === 'Investimento') {
+
                 containerInvestimentos.innerHTML += cartao;
-            } else if (dados.tipo === 'Gastos' && dados.item === 'SubContratos') {
+
+            } else if (
+                dados.tipo === 'Gastos' &&
+                dados.item === 'SubContratos'
+            ) {
+
                 containerProtocolos.innerHTML += cartao;
+
             } else {
+
                 containerGastos.innerHTML += cartao;
             }
         });
+
+
+        // ==================================================
+        // DATATABLE
+        // ==================================================
+
+        renderTabelaExecucaoOrcamento(data);
+
+
+    }).fail(function(xhr, status, error) {
+
+        console.error(
+            'Erro ao carregar o orçamento:',
+            error
+        );
+
+        const containerTabela =
+            document.getElementById(
+                'tabelaExecucaoOrcamento'
+            );
+
+        if (containerTabela) {
+
+            containerTabela.innerHTML = `
+
+                <div class="col-12">
+
+                    <div class="alert alert-danger mb-0">
+
+                        Não foi possível carregar
+                        a execução orçamental.
+
+                    </div>
+
+                </div>
+            `;
+        }
     });
 }
+
+
+
+// ==========================================================
+// DATATABLE
+// EXECUÇÃO ORÇAMENTAL POR RUBRICA
+// ==========================================================
+
+// ==========================================================
+// PREPARAR DADOS PARA A DATATABLE
+// ==========================================================
+
+function prepararExecucaoOrcamento(rubricas) {
+
+    if (!Array.isArray(rubricas)) {
+
+        return [];
+    }
+
+
+    return rubricas.map(rubrica => {
+
+
+        const processos =
+            Array.isArray(rubrica.processos)
+                ? rubrica.processos
+                : [];
+
+
+        const faturacaoMensal =
+            Array(12).fill(0);
+
+
+        let numeroFaturas = 0;
+        let faturadoCalculado = 0;
+
+
+        // --------------------------------------------------
+        // PROCESSOS DA RUBRICA
+        // --------------------------------------------------
+
+        processos.forEach(processo => {
+
+
+            const faturas =
+                Array.isArray(processo.faturas)
+                    ? processo.faturas
+                    : [];
+
+
+            numeroFaturas +=
+                faturas.length;
+
+
+            // ----------------------------------------------
+            // FATURAS DO PROCESSO
+            // ----------------------------------------------
+
+            faturas.forEach(fatura => {
+
+
+                const valor =
+                    numero(
+                        fatura.fact_valor
+                    );
+
+
+                faturadoCalculado +=
+                    valor;
+
+
+                if (!fatura.fact_data) {
+
+                    return;
+                }
+
+
+                const partes =
+                    String(fatura.fact_data)
+                        .substring(0, 10)
+                        .split('-');
+
+
+                if (partes.length !== 3) {
+
+                    return;
+                }
+
+
+                const anoFatura =
+                    Number(partes[0]);
+
+
+                const mesFatura =
+                    Number(partes[1]);
+
+
+                if (
+                    anoFatura !==
+                        Number(anoCorrente) ||
+                    mesFatura < 1 ||
+                    mesFatura > 12
+                ) {
+
+                    return;
+                }
+
+
+                faturacaoMensal[
+                    mesFatura - 1
+                ] += valor;
+
+            });
+
+        });
+
+
+        // --------------------------------------------------
+        // TOTAIS DA RUBRICA
+        // --------------------------------------------------
+
+        const previsto =
+            numero(
+                rubrica.previsto
+            );
+
+
+        const adjudicado =
+            numero(
+                rubrica.adjudicado
+            );
+
+
+        // Saldo pedido:
+        //
+        // Valor Previsto - Valor Adjudicado
+
+        const saldo =
+            previsto -
+            adjudicado;
+
+
+        // --------------------------------------------------
+        // NOME DA RUBRICA
+        // --------------------------------------------------
+
+        const nomeRubrica =
+            [
+                rubrica.cod ||
+                    rubrica.rub_cod ||
+                    '',
+
+                rubrica.item ||
+                    rubrica.rubrica ||
+                    rubrica.designacao ||
+                    ''
+            ]
+            .filter(Boolean)
+            .join(' — ');
+
+
+        // --------------------------------------------------
+        // OBJETO DA DATATABLE
+        // --------------------------------------------------
+
+        return {
+
+            // Código da rubrica usado para ordenação
+            rubCod:
+                numero(
+                    rubrica.cod ||
+                    rubrica.rub_cod
+                ),
+
+            rubrica: nomeRubrica,
+
+            previsto: previsto,
+
+            adjudicado: adjudicado,
+
+            saldo: saldo,
+
+            numeroProcessos:
+                processos.length,
+
+            numeroFaturas:
+                numeroFaturas,
+
+            faturado:
+                rubrica.faturado !== undefined
+                    ? numero(
+                        rubrica.faturado
+                    )
+                    : faturadoCalculado,
+
+            jan: faturacaoMensal[0],
+            fev: faturacaoMensal[1],
+            mar: faturacaoMensal[2],
+            abr: faturacaoMensal[3],
+            mai: faturacaoMensal[4],
+            jun: faturacaoMensal[5],
+            jul: faturacaoMensal[6],
+            ago: faturacaoMensal[7],
+            set: faturacaoMensal[8],
+            out: faturacaoMensal[9],
+            nov: faturacaoMensal[10],
+            dez: faturacaoMensal[11]
+        };
+
+    });
+}
+
+
+
+// ==========================================================
+// CRIAR DATATABLE
+// ==========================================================
+
+function renderTabelaExecucaoOrcamento(
+    rubricas
+) {
+
+    const container =
+        document.getElementById(
+            'tabelaExecucaoOrcamento'
+        );
+
+
+    if (!container) {
+
+        return;
+    }
+
+
+    // ======================================================
+    // DESTRUIR DATATABLE EXISTENTE
+    // ======================================================
+
+    if (
+        $.fn.DataTable &&
+        $.fn.DataTable.isDataTable(
+            '#execucaoOrcamentoDataTable'
+        )
+    ) {
+
+        $('#execucaoOrcamentoDataTable')
+            .DataTable()
+            .destroy();
+    }
+
+
+    // ======================================================
+    // HTML DA TABELA
+    // ======================================================
+
+    container.innerHTML = `
+
+            <div class="col-12 small">
+
+                <!-- CABEÇALHO DA TABELA -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+
+                    <h6 class="mb-0">
+                        Execução Orçamental
+                    </h6>
+
+                    <button
+                        type="button"
+                        id="exportarTabelaExecucaoPDF"
+                        class="btn btn-danger btn-sm"
+                        onclick="exportarTabelaExecucaoPDF()"
+                        title="Exportar execução orçamental para PDF"
+                    >
+                        <i class="fas fa-file-pdf mr-1"></i>
+                        PDF
+                    </button>
+
+                </div>
+
+                <div class="table-responsive">
+
+                    <table
+                        id="execucaoOrcamentoDataTable"
+                        class="
+                            table
+                            table-sm
+                            table-striped
+                            table-bordered
+                            table-hover
+                            nowrap
+                            w-100
+                        "
+                    >
+
+                    <thead class="thead-dark">
+
+                        <!-- ============================== -->
+                        <!-- PRIMEIRA LINHA DO CABEÇALHO    -->
+                        <!-- ============================== -->
+
+                        <tr>
+
+                            <th rowspan="2" class="align-middle">
+                                Rubrica
+                            </th>
+
+                            <th rowspan="2" class="align-middle text-right">
+                                Valor Previsto
+                            </th>
+
+                            <th rowspan="2" class="align-middle text-right">
+                                Valor Adjudicado
+                            </th>
+
+                            <th rowspan="2" class="align-middle text-right">
+                                Saldo
+                            </th>
+
+                            <th rowspan="2" class="align-middle text-right">
+                                Valor Faturado
+                            </th>
+
+                            <th colspan="12" class="text-center">
+                                Faturação por mês
+                            </th>
+
+                        </tr>
+
+
+                        <!-- ============================== -->
+                        <!-- MESES                          -->
+                        <!-- ============================== -->
+
+                        <tr>
+
+                            <th class="text-right">
+                                Jan.
+                            </th>
+
+                            <th class="text-right">
+                                Fev.
+                            </th>
+
+                            <th class="text-right">
+                                Mar.
+                            </th>
+
+                            <th class="text-right">
+                                Abr.
+                            </th>
+
+                            <th class="text-right">
+                                Mai.
+                            </th>
+
+                            <th class="text-right">
+                                Jun.
+                            </th>
+
+                            <th class="text-right">
+                                Jul.
+                            </th>
+
+                            <th class="text-right">
+                                Ago.
+                            </th>
+
+                            <th class="text-right">
+                                Set.
+                            </th>
+
+                            <th class="text-right">
+                                Out.
+                            </th>
+
+                            <th class="text-right">
+                                Nov.
+                            </th>
+
+                            <th class="text-right">
+                                Dez.
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody></tbody>
+                    <tfoot class="thead-dark">
+                        <tr>
+                            <th class="text-right">TOTAL</th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+
+                </table>
+
+            </div>
+
+        </div>
+    `;
+
+
+    // ======================================================
+    // PREPARAR DADOS
+    // ======================================================
+
+    const dadosTabela =
+        prepararExecucaoOrcamento(
+            rubricas
+        );
+
+
+    // ======================================================
+    // VERIFICAR DATATABLES
+    // ======================================================
+
+    if (!$.fn.DataTable) {
+
+        console.error(
+            'A biblioteca DataTables não está disponível.'
+        );
+
+        return;
+    }
+
+
+    // ======================================================
+    // RENDER DE VALORES MONETÁRIOS
+    // ======================================================
+
+    const renderMoeda =
+        function(data, type) {
+
+
+            const valor =
+                numero(data);
+
+
+            // Para visualização:
+            //
+            // 1 250,00 €
+
+            if (
+                type === 'display' ||
+                type === 'filter'
+            ) {
+
+                return moeda(
+                    valor
+                );
+            }
+
+
+            // Para ordenação o DataTables
+            // recebe o número verdadeiro.
+
+            return valor;
+
+        };
+
+
+    // ======================================================
+    // DATATABLE
+    // ======================================================
+
+    $('#execucaoOrcamentoDataTable')
+        .DataTable({
+
+            data: dadosTabela,
+
+
+            // ==============================================
+            // COLUNAS
+            // ==============================================
+
+            columns: [
+
+                {
+                    data: 'rubrica',
+
+                    render: function(data, type, row) {
+
+                        // Para ordenação utiliza rub_cod
+                        if (type === 'sort' || type === 'type') {
+                            return row.rubCod;
+                        }
+
+                        // Para apresentação mantém:
+                        // código — designação
+                        return data;
+                    }
+                },
+
+                {
+                    data: 'previsto',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'adjudicado',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'saldo',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'faturado',
+                    render: renderMoeda
+                },
+
+
+                // ------------------------------------------
+                // MESES
+                // ------------------------------------------
+
+                {
+                    data: 'jan',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'fev',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'mar',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'abr',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'mai',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'jun',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'jul',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'ago',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'set',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'out',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'nov',
+                    render: renderMoeda
+                },
+
+                {
+                    data: 'dez',
+                    render: renderMoeda
+                }
+
+            ],
+
+
+            // ==============================================
+            // ALINHAMENTOS
+            // ==============================================
+
+            columnDefs: [
+
+                {
+                    targets: [
+                        1, 2, 3, 4,
+                        5, 6, 7, 8, 9, 10,
+                        11, 12, 13, 14, 15, 16
+                    ],
+                    className: 'text-right'
+                }
+
+            ],
+            footerCallback: function() {
+
+                const api = this.api();
+
+                // Colunas monetárias:
+                // 1 = Previsto
+                // 2 = Adjudicado
+                // 3 = Saldo
+                // 4 = Faturado
+                // 5 a 16 = Janeiro a Dezembro
+
+                for (let coluna = 1; coluna <= 16; coluna++) {
+
+                    const total = api
+                        .column(coluna)
+                        .data()
+                        .reduce(
+                            (soma, valor) =>
+                                soma + numero(valor),
+                            0
+                        );
+
+                    $(api.column(coluna).footer())
+                        .html(moeda(total));
+                }
+            },
+
+
+            // ==============================================
+            // ORDENAÇÃO
+            // ==============================================
+
+            order: [
+                [
+                    0,
+                    'asc'
+                ]
+            ],
+
+
+            // ==============================================
+            // PAGINAÇÃO
+            // ==============================================
+
+            pageLength: 25,
+
+            lengthMenu: [
+
+                [
+                    10,
+                    25,
+                    50,
+                    -1
+                ],
+
+                [
+                    10,
+                    25,
+                    50,
+                    'Todos'
+                ]
+            ],
+
+
+            // ==============================================
+            // SCROLL HORIZONTAL
+            // ==============================================
+
+            scrollX: true,
+
+            autoWidth: false,
+
+
+            // ==============================================
+            // PORTUGUÊS
+            // ==============================================
+
+            language: {
+
+                decimal: ',',
+
+                thousands: '.',
+
+                emptyTable:
+                    'Não existem dados para apresentar.',
+
+                info:
+                    'A mostrar _START_ a _END_ de _TOTAL_ rubricas',
+
+                infoEmpty:
+                    'A mostrar 0 a 0 de 0 rubricas',
+
+                infoFiltered:
+                    '(filtrado de _MAX_ rubricas)',
+
+                lengthMenu:
+                    'Mostrar _MENU_ rubricas',
+
+                loadingRecords:
+                    'A carregar...',
+
+                processing:
+                    'A processar...',
+
+                search:
+                    'Procurar:',
+
+                zeroRecords:
+                    'Não foram encontradas rubricas.',
+
+                paginate: {
+
+                    first:
+                        'Primeira',
+
+                    last:
+                        'Última',
+
+                    next:
+                        'Seguinte',
+
+                    previous:
+                        'Anterior'
+                }
+            }
+
+        });
+}
+
 
 
 // ==========================================================
@@ -111,50 +1032,112 @@ function cartoes(endereco) {
 
 function validaAno(ano) {
 
-    ano = parseInt(ano, 10);
+    ano =
+        parseInt(
+            ano,
+            10
+        );
+
 
     if (isNaN(ano)) {
-        alert("Ano inválido! Por favor insira um número.");
+
+        alert(
+            "Ano inválido! Por favor insira um número."
+        );
+
         return false;
     }
 
-    if (ano < 2000 || ano > 2100) {
-        alert("Ano fora do intervalo permitido (2000-2100).");
+
+    if (
+        ano < 2000 ||
+        ano > 2100
+    ) {
+
+        alert(
+            "Ano fora do intervalo permitido (2000-2100)."
+        );
+
         return false;
     }
+
 
     return true;
 }
 
 
+
+// ==========================================================
+// MUDAR ANO
+// ==========================================================
+
 function mudaAno() {
 
-    var anoFormulario = document.getElementById('anoCorrente').value;
+    var anoFormulario =
+        document.getElementById(
+            'anoCorrente'
+        ).value;
+
 
     if (!validaAno(anoFormulario)) {
-        document.getElementById('anoCorrente').value = anoCorrente;
+
+        document.getElementById(
+            'anoCorrente'
+        ).value = anoCorrente;
+
         return;
     }
 
-    anoCorrente = anoFormulario;
 
-    cartoes('dados/orcamentoDashboard.php?anoCorrente=' + anoCorrente);
+    anoCorrente =
+        anoFormulario;
+
+
+    // Esta única chamada atualiza:
+    //
+    // 1. Cartões
+    // 2. DataTable
+
+    cartoes(
+        'dados/orcamentoDashboard.php?anoCorrente=' +
+        anoCorrente
+    );
 }
 
+
+
+// ==========================================================
+// ANO DEFAULT
+// ==========================================================
 
 function anoDefault() {
 
-    document.getElementById('anoCorrente').value = anoCorrente;
+    document.getElementById(
+        'anoCorrente'
+    ).value =
+        anoCorrente;
 
-    cartoes('dados/orcamentoDashboard.php?anoCorrente=' + anoCorrente);
+
+    // Esta única chamada atualiza:
+    //
+    // 1. Cartões
+    // 2. DataTable
+
+    cartoes(
+        'dados/orcamentoDashboard.php?anoCorrente=' +
+        anoCorrente
+    );
 }
+
 
 
 // ==========================================================
 // REDIRECIONAMENTOS
 // ==========================================================
 
-function orcamentoResults(itemProcurado) {
+function orcamentoResults(
+    itemProcurado
+) {
 
     var URL =
         "orcamentoResults.html?itemProcurado=" +
@@ -162,11 +1145,16 @@ function orcamentoResults(itemProcurado) {
         "&anoCorrente=" +
         anoCorrente;
 
-    window.location.href = URL;
+
+    window.location.href =
+        URL;
 }
 
 
-function orcamentoNested(itemProcurado) {
+
+function orcamentoNested(
+    itemProcurado
+) {
 
     var URL =
         "orcamentoNested.html?itemProcurado=" +
@@ -174,8 +1162,11 @@ function orcamentoNested(itemProcurado) {
         "&anoCorrente=" +
         anoCorrente;
 
-    window.location.href = URL;
+
+    window.location.href =
+        URL;
 }
+
 
 
 window.onload = anoDefault;
@@ -289,64 +1280,6 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
     let numeroFaturasGeral = 0;
 
     const totaisPorTipoFatura = {};
-
-
-    // ======================================================
-    // FUNÇÕES AUXILIARES
-    // ======================================================
-
-    function numero(valor) {
-        const resultado = Number(valor);
-        return Number.isFinite(resultado) ? resultado : 0;
-    }
-
-
-    function moeda(valor) {
-        return new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'}).format(numero(valor));
-    }
-
-
-    function textoPDF(valor) {
-
-        if (valor === null || valor === undefined) return '';
-
-        return String(valor)
-            .replace(/\u00A0/g, ' ')
-            .replace(/[^\x20-\xFFÀ-ÿ]/g, '');
-    }
-
-
-    function dataPT(valor) {
-        if (!valor) {return '';}
-
-        const data = String(valor).substring(0, 10);
-        const partes = data.split('-');
-      
-        if (partes.length !== 3) {return escapeHtml(valor);}
-      
-        const [ano, mes, dia] = partes;
-      
-        return `${dia}-${mes}-${ano}`;
-    }
-
-
-    function expediente(valor) {
-        if (!valor) {return '';}
-
-        const texto = String(valor).trim();
-      
-        if (/^[A-Za-z0-9]\.\d+\.\d+$/.test(texto)) {
-          return texto;
-        }
-      
-        const prefixo = texto.charAt(0);
-        const registo = texto.slice(1, -2);
-        const ano = texto.slice(-2);
-        
-      
-        return `${prefixo}.${registo.padStart(5, '0')}.${ano}`;
-
-    }
 
 
     // ======================================================
@@ -1657,4 +2590,555 @@ function adicionarPaginacaoExecucaoPDF(doc) {
             { align: 'right' }
         );
     }
+}
+
+// ==========================================================
+// EXPORTAR DATATABLE - EXECUÇÃO ORÇAMENTAL
+// ==========================================================
+
+async function exportarTabelaExecucaoPDF() {
+
+    const botao =
+        document.getElementById('exportarTabelaExecucaoPDF');
+
+    try {
+
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            throw new Error(
+                'A biblioteca jsPDF não está disponível.'
+            );
+        }
+
+        const ano = parseInt(
+            document.getElementById('anoCorrente').value,
+            10
+        );
+
+        if (!validaAno(ano)) {
+            return;
+        }
+
+        if (botao) {
+
+            botao.disabled = true;
+
+            botao.innerHTML =
+                '<i class="fas fa-spinner fa-spin mr-1"></i> A gerar PDF...';
+        }
+
+
+        // --------------------------------------------------
+        // OBTER OS MESMOS DADOS DO DASHBOARD
+        // --------------------------------------------------
+
+        const response = await fetch(
+            'dados/orcamentoDashboard.php?anoCorrente=' +
+            encodeURIComponent(ano)
+        );
+
+        if (!response.ok) {
+
+            throw new Error(
+                `Erro HTTP ${response.status}`
+            );
+        }
+
+        const resultado =
+            await response.json();
+
+
+        const rubricas =
+            Array.isArray(resultado)
+                ? resultado
+                : Array.isArray(resultado.rubricas)
+                    ? resultado.rubricas
+                    : [];
+
+
+        if (rubricas.length === 0) {
+
+            alert(
+                `Não existem dados de execução orçamental para o ano ${ano}.`
+            );
+
+            return;
+        }
+
+
+        // --------------------------------------------------
+        // PREPARAR DADOS
+        // Utiliza a mesma função da DataTable
+        // --------------------------------------------------
+
+        const dadosTabela =
+            prepararExecucaoOrcamento(rubricas);
+
+
+        // --------------------------------------------------
+        // CRIAR PDF
+        // --------------------------------------------------
+
+        const doc =
+            criarDocumentoTabelaExecucaoPDF(
+                dadosTabela,
+                ano
+            );
+
+
+        // Abrir no browser, tal como o outro relatório
+        window.open(
+            doc.output('bloburl'),
+            '_blank'
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            'Erro ao exportar a tabela:',
+            error
+        );
+
+        alert(
+            'Não foi possível gerar o relatório.\n\n' +
+            error.message
+        );
+
+    } finally {
+
+        if (botao) {
+
+            botao.disabled = false;
+
+            botao.innerHTML =
+                '<i class="fas fa-file-pdf mr-1"></i> Exportar Tabela';
+        }
+    }
+}
+
+
+
+// ==========================================================
+// CRIAR PDF DA DATATABLE
+// ==========================================================
+
+function criarDocumentoTabelaExecucaoPDF(
+    dados,
+    ano
+) {
+
+    const { jsPDF } =
+        window.jspdf;
+
+
+    // ------------------------------------------------------
+    // LANDSCAPE
+    // ------------------------------------------------------
+
+    const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+    });
+
+
+    if (typeof doc.autoTable !== 'function') {
+
+        throw new Error(
+            'A biblioteca jsPDF AutoTable não está disponível.'
+        );
+    }
+
+
+    const pageWidth =
+        doc.internal.pageSize.getWidth();
+
+    const pageHeight =
+        doc.internal.pageSize.getHeight();
+
+    const marginLeft = 6;
+    const marginRight = 6;
+
+
+    // ======================================================
+    // CABEÇALHO
+    // ======================================================
+
+    function adicionarCabecalho() {
+
+        const dataGeracao =
+            new Date().toLocaleDateString('pt-PT');
+
+
+        doc.setTextColor(
+            0,
+            0,
+            0
+        );
+
+
+        doc.setFont(
+            'helvetica',
+            'bold'
+        );
+
+        doc.setFontSize(12);
+
+        doc.text(
+            'EXECUÇÃO ORÇAMENTAL',
+            marginLeft,
+            10
+        );
+
+
+        doc.setFont(
+            'helvetica',
+            'normal'
+        );
+
+        doc.setFontSize(9);
+
+        doc.text(
+            `Ano: ${ano}`,
+            marginLeft,
+            16
+        );
+
+
+        doc.setFontSize(8);
+
+        doc.text(
+            `Gerado em: ${dataGeracao}`,
+            pageWidth - marginRight,
+            10,
+            {
+                align: 'right'
+            }
+        );
+
+
+        doc.setDrawColor(
+            180,
+            180,
+            180
+        );
+
+        doc.line(
+            marginLeft,
+            21,
+            pageWidth - marginRight,
+            21
+        );
+    }
+
+
+    // ======================================================
+    // TOTAIS
+    // ======================================================
+
+    const totais =
+        Array(16).fill(0);
+
+
+    dados.forEach(item => {
+
+        const valores = [
+
+            item.previsto,
+            item.adjudicado,
+            item.saldo,
+            item.faturado,
+
+            item.jan,
+            item.fev,
+            item.mar,
+            item.abr,
+            item.mai,
+            item.jun,
+            item.jul,
+            item.ago,
+            item.set,
+            item.out,
+            item.nov,
+            item.dez
+
+        ];
+
+
+        valores.forEach(
+            (valor, indice) => {
+
+                totais[indice] +=
+                    numero(valor);
+            }
+        );
+
+    });
+
+
+    // ======================================================
+    // LINHAS
+    // ======================================================
+
+    const linhas =
+        dados.map(item => [
+
+            item.rubrica,
+
+            item.previsto,
+            item.adjudicado,
+            item.saldo,
+            item.faturado,
+
+            item.jan,
+            item.fev,
+            item.mar,
+            item.abr,
+            item.mai,
+            item.jun,
+            item.jul,
+            item.ago,
+            item.set,
+            item.out,
+            item.nov,
+            item.dez
+
+        ]);
+
+
+    // ======================================================
+    // RODAPÉ
+    // ======================================================
+
+    const rodape = [[
+
+        'TOTAL',
+
+        ...totais
+
+    ]];
+
+
+    // ======================================================
+    // CRIAR DOCUMENTO
+    // ======================================================
+
+    adicionarCabecalho();
+
+
+    doc.autoTable({
+
+        startY: 25,
+
+
+        // --------------------------------------------------
+        // CABEÇALHO
+        // --------------------------------------------------
+
+        head: [[
+
+            'Rubrica',
+
+            'Previsto',
+            'Adjudicado',
+            'Saldo',
+            'Faturado',
+
+            'Jan.',
+            'Fev.',
+            'Mar.',
+            'Abr.',
+            'Mai.',
+            'Jun.',
+            'Jul.',
+            'Ago.',
+            'Set.',
+            'Out.',
+            'Nov.',
+            'Dez.'
+
+        ]],
+
+
+        // --------------------------------------------------
+        // DADOS
+        // --------------------------------------------------
+
+        body: linhas,
+
+
+        // --------------------------------------------------
+        // TOTAIS
+        // --------------------------------------------------
+
+        foot: rodape,
+
+        showFoot: 'lastPage',
+
+
+        // --------------------------------------------------
+        // FORMATAÇÃO GERAL
+        // --------------------------------------------------
+
+        theme: 'grid',
+
+        margin: {
+            left: marginLeft,
+            right: marginRight,
+            top: 25,
+            bottom: 14
+        },
+
+
+        styles: {
+
+            fontSize: 6.5,
+
+            cellPadding: 1.2,
+
+            valign: 'middle',
+
+            overflow: 'linebreak'
+        },
+
+
+        // --------------------------------------------------
+        // CABEÇALHO
+        // --------------------------------------------------
+
+        headStyles: {
+
+            fillColor: [
+                52,
+                58,
+                64
+            ],
+
+            textColor: 255,
+
+            fontStyle: 'bold',
+
+            halign: 'center'
+        },
+
+
+        // --------------------------------------------------
+        // RODAPÉ
+        // --------------------------------------------------
+
+        footStyles: {
+
+            fillColor: [
+                52,
+                58,
+                64
+            ],
+
+            textColor: 255,
+
+            fontStyle: 'bold'
+        },
+
+
+        // --------------------------------------------------
+        // LARGURA DAS COLUNAS
+        // --------------------------------------------------
+
+        columnStyles: {
+
+            0: {
+                cellWidth: 48
+            },
+
+            1: {
+                cellWidth: 20,
+                halign: 'right'
+            },
+
+            2: {
+                cellWidth: 20,
+                halign: 'right'
+            },
+
+            3: {
+                cellWidth: 20,
+                halign: 'right'
+            },
+
+            4: {
+                cellWidth: 20,
+                halign: 'right'
+            },
+
+            5:  { halign: 'right' },
+            6:  { halign: 'right' },
+            7:  { halign: 'right' },
+            8:  { halign: 'right' },
+            9:  { halign: 'right' },
+            10: { halign: 'right' },
+            11: { halign: 'right' },
+            12: { halign: 'right' },
+            13: { halign: 'right' },
+            14: { halign: 'right' },
+            15: { halign: 'right' },
+            16: { halign: 'right' }
+
+        },
+
+
+        // --------------------------------------------------
+        // FORMATAR VALORES COMO MOEDA
+        // --------------------------------------------------
+
+        didParseCell(data) {
+
+            if (
+                (
+                    data.section === 'body' ||
+                    data.section === 'foot'
+                ) &&
+                data.column.index >= 1
+            ) {
+
+                data.cell.text = [
+                    moeda(data.cell.raw)
+                ];
+            }
+
+
+            // TOTAL alinhado à direita
+
+            if (
+                data.section === 'foot' &&
+                data.column.index === 0
+            ) {
+
+                data.cell.styles.halign =
+                    'right';
+            }
+        },
+
+
+        // --------------------------------------------------
+        // CABEÇALHO EM TODAS AS PÁGINAS
+        // --------------------------------------------------
+
+        didDrawPage() {
+
+            adicionarCabecalho();
+        }
+
+    });
+
+
+    // ======================================================
+    // PAGINAÇÃO
+    // ======================================================
+
+    adicionarPaginacaoExecucaoPDF(
+        doc
+    );
+
+
+    return doc;
 }
