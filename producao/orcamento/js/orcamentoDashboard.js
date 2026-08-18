@@ -538,13 +538,13 @@ function renderTabelaExecucaoOrcamento(
 
     container.innerHTML = `
 
-            <div class="col-12 small">
+            <div class="col-12">
 
                 <!-- CABEÇALHO DA TABELA -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
 
                     <h6 class="mb-0">
-                        Execução Orçamental
+                        Resumo da Execução Orçamental
                     </h6>
 
                     <button
@@ -560,7 +560,7 @@ function renderTabelaExecucaoOrcamento(
 
                 </div>
 
-                <div class="table-responsive">
+                <div class="table-responsive small">
 
                     <table
                         id="execucaoOrcamentoDataTable"
