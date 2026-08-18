@@ -1297,12 +1297,12 @@ function criarDocumentoReembolsosPDF(
   }
 
   // ========================================================
-  // FATURAÇÃO POR MÊS
+  // FATURAÇÃO POR MÊS / ANO
+  // Cada ano corresponde a uma série diferente
   // ========================================================
   function calcularFaturacaoMensal() {
 
-    const meses =
-      Array(12).fill(0);
+    const faturacaoPorAno = {};
 
     grupos.forEach(grupo => {
 
@@ -1330,28 +1330,45 @@ function criarDocumentoReembolsosPDF(
             return;
           }
 
-          const mes =
-            Number(partes[1]);
+          const ano = Number(partes[0]);
+          const mes = Number(partes[1]);
 
           if (
+            !ano ||
             mes < 1 ||
             mes > 12
           ) {
             return;
           }
 
-          meses[mes - 1] +=
-            Number(fatura.fact_valor) ||
-            0;
+          // Criar o ano caso ainda não exista
+          if (!faturacaoPorAno[ano]) {
+            faturacaoPorAno[ano] =
+              Array(12).fill(0);
+          }
+
+          // Acumular no mês correspondente
+          faturacaoPorAno[ano][mes - 1] +=
+            Number(fatura.fact_valor) || 0;
         });
       });
     });
 
-    return meses;
+    // Ordenar os anos cronologicamente
+    const anos =
+      Object.keys(faturacaoPorAno)
+        .map(Number)
+        .sort((a, b) => a - b);
+
+    return {
+      anos,
+      faturacaoPorAno
+    };
   }
 
   // ========================================================
   // CRIAR IMAGEM DO GRÁFICO
+  // Cada ano é apresentado como uma série
   // ========================================================
   function criarImagemGraficoMensal() {
 
@@ -1364,7 +1381,10 @@ function criarDocumentoReembolsosPDF(
     const contexto =
       canvas.getContext('2d');
 
-    const valoresMensais =
+    const {
+      anos,
+      faturacaoPorAno
+    } =
       calcularFaturacaoMensal();
 
     const meses = [
@@ -1383,54 +1403,83 @@ function criarDocumentoReembolsosPDF(
     ];
 
     // ------------------------------------------------------
+    // CORES DAS SÉRIES
+    // ------------------------------------------------------
+    const cores = [
+      {
+        fundo: '#17a2b8',
+        bordo: '#117a8b'
+      },
+      {
+        fundo: '#28a745',
+        bordo: '#1e7e34'
+      },
+      {
+        fundo: '#ffc107',
+        bordo: '#d39e00'
+      },
+      {
+        fundo: '#6f42c1',
+        bordo: '#59339d'
+      },
+      {
+        fundo: '#fd7e14',
+        bordo: '#d96b0b'
+      },
+      {
+        fundo: '#dc3545',
+        bordo: '#bd2130'
+      }
+    ];
+
+    // ------------------------------------------------------
+    // UM DATASET POR ANO
+    // ------------------------------------------------------
+    const datasets =
+      anos.map((ano, index) => {
+
+        const cor = cores[index % cores.length];
+
+        return {
+          label: String(ano),
+          data: faturacaoPorAno[ano],
+          backgroundColor: cor.fundo,
+          borderColor: cor.bordo,
+          borderWidth: 1
+        };
+      });
+
+    // ------------------------------------------------------
     // VALORES SOBRE AS BARRAS
     // ------------------------------------------------------
     const pluginValores = {
 
-      id:
-        'pluginValoresReembolsos',
-
+      id: 'pluginValoresReembolsos',
       afterDatasetsDraw(chart) {
 
-        const { ctx } =
-          chart;
+        const { ctx } = chart;
 
         ctx.save();
 
-        ctx.font =
-          'bold 16px Arial';
+        ctx.font = 'bold 13px Arial';
+        ctx.fillStyle = '#212529';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
 
-        ctx.fillStyle =
-          '#212529';
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+            const meta = chart.getDatasetMeta(datasetIndex);
 
-        ctx.textAlign =
-          'center';
+            meta.data.forEach((barra, index) => {
+                const valor = Number(dataset.data[index]) || 0;
 
-        ctx.textBaseline =
-          'bottom';
+                // Não apresentar valores zero
+                if (valor === 0) {
+                  return;
+                }
 
-        const dataset =
-          chart.data.datasets[0];
+                ctx.fillText(formatCurrency(valor), barra.x, barra.y - 6);
 
-        const meta =
-          chart.getDatasetMeta(0);
-
-        meta.data.forEach(
-          (barra, index) => {
-
-            const valor =
-              Number(
-                dataset.data[index]
-              ) || 0;
-
-            if (valor === 0) {
-              return;
-            }
-
-            ctx.fillText(
-              formatCurrency(valor),
-              barra.x,
-              barra.y - 8
+              }
             );
           }
         );
@@ -1439,89 +1488,54 @@ function criarDocumentoReembolsosPDF(
       }
     };
 
-    const grafico =
-      new Chart(
-        contexto,
-        {
+    // ------------------------------------------------------
+    // GRÁFICO
+    // ------------------------------------------------------
+    const grafico = new Chart(contexto,{
           type: 'bar',
-
           data: {
             labels: meses,
-
-            datasets: [
-              {
-                label: 'Faturação',
-
-                data:
-                  valoresMensais,
-
-                backgroundColor:
-                  '#17a2b8',
-
-                borderColor:
-                  '#117a8b',
-
-                borderWidth: 1
-              }
-            ]
+            datasets
           },
-
-          plugins: [
-            pluginValores
-          ],
-
+          plugins: [pluginValores],
           options: {
-
             responsive: false,
-
             animation: false,
-
-            maintainAspectRatio:
-              false,
-
+            maintainAspectRatio: false,
             layout: {
               padding: {
-                top: 30,
+                top: 35,
                 right: 10,
                 left: 10,
                 bottom: 10
               }
             },
-
             plugins: {
+              // Agora precisamos da legenda
+              // para identificar cada ano
               legend: {
-                display: false
+                display: true,
+                position: 'top',
+                labels: {
+                  boxWidth: 18,
+                  boxHeight: 10,
+                  font: {size: 13}
+                }
               }
             },
-
             scales: {
-
               x: {
-                grid: {
-                  display: false
+                grid: {display: false},
+                ticks: {
+                  autoSkip: false,
+                  maxRotation: 0,
+                  minRotation: 0
                 }
               },
-
               y: {
-
                 beginAtZero: true,
-
-                ticks: {
-
-                  callback(valor) {
-
-                    return new Intl
-                      .NumberFormat(
-                        'pt-PT',
-                        {
-                          notation:
-                            'compact',
-
-                          maximumFractionDigits:
-                            1
-                        }
-                      )
-                      .format(valor);
+                ticks: {callback(valor) {
+                    return new Intl.NumberFormat('pt-PT', {notation: 'compact', maximumFractionDigits: 1}).format(valor);
                   }
                 }
               }
@@ -1532,13 +1546,19 @@ function criarDocumentoReembolsosPDF(
 
     grafico.update();
 
-    const imagem =
-      canvas.toDataURL(
-        'image/png',
-        1
-      );
+    const imagem = canvas.toDataURL('image/png', 1);
 
     grafico.destroy();
+
+    // ------------------------------------------------------
+    // TOTAL DE TODOS OS ANOS
+    // ------------------------------------------------------
+    const valoresMensais = Array(12).fill(0);
+
+    anos.forEach(ano => {faturacaoPorAno[ano].forEach((valor, mes) => {
+          valoresMensais[mes] += Number(valor) || 0;
+        });
+    });
 
     return {
       imagem,
@@ -1551,82 +1571,30 @@ function criarDocumentoReembolsosPDF(
   // ========================================================
   function adicionarCabecalhoGrupo(grupo) {
 
-    const isOrfao =
-      grupo.key === 'ORFAO';
+    const isOrfao = grupo.key === 'ORFAO';
 
-    if (
-      startY >
-      pageHeight - 35
-    ) {
+    if (startY > pageHeight - 35) {
       adicionarNovaPagina();
     }
 
     // ------------------------------------------------------
     // TOTAL DO GRUPO
     // ------------------------------------------------------
-    const totalPedido =
-      Number(
-        grupo.totalPedido
-      ) || 0;
-
-    const totalReembolso =
-      Number(
-        grupo.totalReembolso
-      ) || 0;
-
-    const totalFaturado =
-      calcularTotalFaturadoGrupo(
-        grupo
-      );
-
-    const aReceber =
-      totalPedido -
-      Math.abs(
-        totalReembolso
-      );
+    const totalPedido = Number(grupo.totalPedido) || 0;
+    const totalReembolso = Number(grupo.totalReembolso) || 0;
+    const totalFaturado = calcularTotalFaturadoGrupo(grupo);
+    const aReceber = totalPedido - Math.abs(totalReembolso);
 
     // ------------------------------------------------------
     // BARRA DO TÍTULO
     // ------------------------------------------------------
-    doc.setFillColor(
-      33,
-      37,
-      41
-    );
-
-    doc.rect(
-      marginLeft,
-      startY,
-      tableWidth,
-      9,
-      'F'
-    );
-
-    doc.setFont(
-      'helvetica',
-      'bold'
-    );
-
+    doc.setFillColor(33, 37, 41);
+    doc.rect(marginLeft, startY, tableWidth, 9, 'F');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-
-    doc.setTextColor(
-      255,
-      255,
-      255
-    );
-
-    doc.text(
-      isOrfao
-        ? 'FATURAS ÓRFÃS'
-        : String(grupo.key),
-      marginLeft + 3,
-      startY + 6
-    );
-
-    doc.setTextColor(
-      0,
-      0,
-      0
+    doc.setTextColor(255, 255, 255);
+    doc.text(isOrfao ? 'FATURAS ÓRFÃS' : String(grupo.key), marginLeft + 3, startY + 6);
+    doc.setTextColor(0, 0, 0
     );
 
     // ------------------------------------------------------
@@ -2914,6 +2882,83 @@ function criarDocumentoReembolsosPDF(
       17;
   }
 
+  // ========================================================
+  // PAGINAÇÃO DO PDF
+  // ========================================================
+  function adicionarPaginacaoPDF(doc) {
+
+    const totalPaginas =
+      doc.internal.getNumberOfPages();
+
+    const pageWidth =
+      doc.internal.pageSize.getWidth();
+
+    const pageHeight =
+      doc.internal.pageSize.getHeight();
+
+    const margemEsquerda = 10;
+    const margemDireita = 10;
+
+    for (
+      let pagina = 1;
+      pagina <= totalPaginas;
+      pagina++
+    ) {
+
+      doc.setPage(pagina);
+
+      // ----------------------------------------------------
+      // LINHA DO RODAPÉ
+      // ----------------------------------------------------
+      doc.setDrawColor(
+        200,
+        200,
+        200
+      );
+      
+
+      doc.setLineWidth(0.2);
+
+      doc.line(
+        margemEsquerda,
+        pageHeight - 12,
+        pageWidth - margemDireita,
+        pageHeight - 12
+      );
+
+      // ----------------------------------------------------
+      // TEXTO DA PAGINAÇÃO
+      // ----------------------------------------------------
+      doc.setFont(
+        'helvetica',
+        'normal'
+      );
+
+      doc.setFontSize(7.5);
+
+      doc.setTextColor(
+        100,
+        100,
+        100
+      );
+
+      doc.text(
+        `Página ${pagina} de ${totalPaginas}`,
+        pageWidth / 2,
+        pageHeight - 7,
+        {
+          align: 'center'
+        }
+      );
+    }
+
+    // Repor cor normal do texto
+    doc.setTextColor(
+      0,
+      0,
+      0
+    );
+  }
   // ========================================================
   // CONSTRUÇÃO DO DOCUMENTO
   // ========================================================

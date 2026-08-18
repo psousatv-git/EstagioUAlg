@@ -19,7 +19,7 @@ function candidaturaRedirected(itemProcurado) {
 }
 
 
-// 🌍 FORMATADORES GLOBAIS
+// FORMATADORES GLOBAIS
 const Formatters = {
     currency: new Intl.NumberFormat('de-DE', {
         style: 'currency',
@@ -236,7 +236,7 @@ $(document).ready(function () {
                     <div class="card h-100 ${classeCartao}" onclick="candidaturaRedirected('${dados.candidatura}')">
                         <div class="d-flex px-3 py-2 small">
                             <div class="flex-grow-1 text-left">
-                                <p class="mb-1 font-weight-bold">${dados.candidatura}</p>
+                                <p class="mb-1 font-weight-bold">${dados.aviso}: ${dados.candidatura}</p>
 
                                 <div>
                                     <h6>

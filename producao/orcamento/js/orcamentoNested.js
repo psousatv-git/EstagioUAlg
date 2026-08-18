@@ -840,54 +840,84 @@ $(document).ready(function () {
     const totaisPorTipoFatura = {};
 
     // ========================================================
-    // FATURAÇÃO POR MÊS
+    // FATURAÇÃO POR MÊS / ANO
     // ========================================================
     function calcularFaturacaoMensal(processos) {
-      const meses = Array(12).fill(0);
 
-      processos.forEach(processo => {const faturas = Array.isArray(processo.faturas) ? processo.faturas : [];
+      const faturacaoPorMes = {};
+
+      processos.forEach(processo => {
+
+        const faturas =
+          Array.isArray(processo.faturas)
+            ? processo.faturas
+            : [];
 
         faturas.forEach(fatura => {
+
           if (!fatura.fact_data) {
             return;
           }
 
-          const partes = String(fatura.fact_data)
-            .substring(0, 10)
-            .split('-');
+          const partes =
+            String(fatura.fact_data)
+              .substring(0, 10)
+              .split('-');
 
           if (partes.length !== 3) {
             return;
           }
 
+          const ano = Number(partes[0]);
           const mes = Number(partes[1]);
 
-          if (mes < 1 || mes > 12) {
+          if (
+            !ano ||
+            mes < 1 ||
+            mes > 12
+          ) {
             return;
           }
 
-          meses[mes - 1] += formatNumero(fatura.fact_valor);
+          const chave =
+            `${ano}-${String(mes).padStart(2, '0')}`;
+
+          if (
+            !Object.prototype.hasOwnProperty.call(
+              faturacaoPorMes,
+              chave
+            )
+          ) {
+            faturacaoPorMes[chave] = 0;
+          }
+
+          faturacaoPorMes[chave] +=
+            formatNumero(fatura.fact_valor);
         });
       });
 
-      return meses;
-    }
-    
-    // ========================================================
-    // CRIAR IMAGEM DO GRÁFICO MENSAL
-    // ========================================================
-    function criarImagemGraficoMensal(processos) {
-      const canvas = document.createElement('canvas');
+      const chaves =
+        Object.keys(faturacaoPorMes)
+          .sort();
 
-      canvas.width = 1200;
-      canvas.height = 500;
+      if (chaves.length === 0) {
+        return {
+          labels: [],
+          valores: []
+        };
+      }
 
-      const contexto = canvas.getContext('2d');
+      const [anoInicial, mesInicial] =
+        chaves[0]
+          .split('-')
+          .map(Number);
 
-      const valoresMensais =
-        calcularFaturacaoMensal(processos);
+      const [anoFinal, mesFinal] =
+        chaves[chaves.length - 1]
+          .split('-')
+          .map(Number);
 
-      const meses = [
+      const nomesMeses = [
         'Jan.',
         'Fev.',
         'Mar.',
@@ -902,13 +932,78 @@ $(document).ready(function () {
         'Dez.'
       ];
 
+      const labels = [];
+      const valores = [];
+
+      let ano = anoInicial;
+      let mes = mesInicial;
+
+      /*
+      * Preenche todos os meses entre
+      * a primeira e a última fatura.
+      */
+      while (
+        ano < anoFinal ||
+        (
+          ano === anoFinal &&
+          mes <= mesFinal
+        )
+      ) {
+
+        const chave =
+          `${ano}-${String(mes).padStart(2, '0')}`;
+
+        labels.push(
+          `${nomesMeses[mes - 1]} ${ano}`
+        );
+
+        valores.push(
+          faturacaoPorMes[chave] || 0
+        );
+
+        mes++;
+
+        if (mes > 12) {
+          mes = 1;
+          ano++;
+        }
+      }
+
+      return {
+        labels,
+        valores
+      };
+    }
+    
+    // ========================================================
+    // CRIAR IMAGEM DO GRÁFICO MENSAL / ANUAL
+    // ========================================================
+    function criarImagemGraficoMensal(processos) {
+
+      const canvas =
+        document.createElement('canvas');
+
+      canvas.width = 1200;
+      canvas.height = 500;
+
+      const contexto =
+        canvas.getContext('2d');
+
+      const {
+        labels,
+        valores
+      } =
+        calcularFaturacaoMensal(processos);
+
       // ======================================================
       // PLUGIN PARA MOSTRAR OS VALORES EM CIMA DAS COLUNAS
       // ======================================================
       const pluginValores = {
+
         id: 'pluginValoresFaturacao',
 
         afterDatasetsDraw(chart) {
+
           const { ctx } = chart;
 
           ctx.save();
@@ -918,110 +1013,154 @@ $(document).ready(function () {
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
 
-          const dataset = chart.data.datasets[0];
-          const meta = chart.getDatasetMeta(0);
+          const dataset =
+            chart.data.datasets[0];
 
-          meta.data.forEach((barra, index) => {
-            const valor = Number(dataset.data[index]) || 0;
+          const meta =
+            chart.getDatasetMeta(0);
 
-            // Não mostra "0 €" nos meses sem faturação
-            if (valor === 0) {
-              return;
+          meta.data.forEach(
+            (barra, index) => {
+
+              const valor =
+                Number(
+                  dataset.data[index]
+                ) || 0;
+
+              if (valor === 0) {
+                return;
+              }
+
+              const texto =
+                formatCurrency(valor);
+
+              ctx.fillText(
+                texto,
+                barra.x,
+                barra.y - 8
+              );
             }
-
-            const texto = formatCurrency(valor);
-
-            ctx.fillText(
-              texto,
-              barra.x,
-              barra.y - 8
-            );
-          });
+          );
 
           ctx.restore();
         }
       };
 
-      const grafico = new Chart(contexto, {
-        type: 'bar',
+      const grafico =
+        new Chart(
+          contexto,
+          {
+            type: 'bar',
 
-        data: {
-          labels: meses,
+            data: {
 
-          datasets: [
-            {
-              label: 'Faturação',
-              data: valoresMensais,
+              labels,
 
-              backgroundColor: '#17a2b8',
-              borderColor: '#117a8b',
-              borderWidth: 1
-            }
-          ]
-        },
+              datasets: [
+                {
+                  label: 'Faturação',
 
-        plugins: [
-          pluginValores
-        ],
+                  data:
+                    valores,
 
-        options: {
-          responsive: false,
-          animation: false,
-          maintainAspectRatio: false,
+                  backgroundColor:
+                    '#17a2b8',
 
-          layout: {
-            padding: {
-              top: 30,
-              right: 10,
-              left: 10,
-              bottom: 10
-            }
-          },
+                  borderColor:
+                    '#117a8b',
 
-          plugins: {
-            legend: {
-              display: false
-            }
-          },
-
-          scales: {
-            x: {
-              grid: {
-                display: false
-              }
+                  borderWidth: 1
+                }
+              ]
             },
 
-            y: {
-              beginAtZero: true,
+            plugins: [
+              pluginValores
+            ],
 
-              ticks: {
-                callback(valor) {
-                  return new Intl.NumberFormat(
-                    'pt-PT',
-                    {
-                      notation: 'compact',
-                      maximumFractionDigits: 1
+            options: {
+
+              responsive: false,
+
+              animation: false,
+
+              maintainAspectRatio: false,
+
+              layout: {
+
+                padding: {
+                  top: 30,
+                  right: 10,
+                  left: 10,
+                  bottom: 10
+                }
+              },
+
+              plugins: {
+
+                legend: {
+                  display: false
+                }
+              },
+
+              scales: {
+
+                x: {
+
+                  grid: {
+                    display: false
+                  },
+
+                  ticks: {
+
+                    /*
+                    * Importante quando o processo
+                    * tem faturação em vários anos.
+                    */
+                    autoSkip: true,
+
+                    maxRotation: 45,
+
+                    minRotation: 0
+                  }
+                },
+
+                y: {
+
+                  beginAtZero: true,
+
+                  ticks: {
+
+                    callback(valor) {
+
+                      return new Intl.NumberFormat(
+                        'pt-PT',
+                        {
+                          notation: 'compact',
+                          maximumFractionDigits: 1
+                        }
+                      ).format(valor);
                     }
-                  ).format(valor);
+                  }
                 }
               }
             }
           }
-        }
-      });
+        );
 
       grafico.update();
 
-      const imagem = canvas.toDataURL(
-        'image/png',
-        1
-      );
+      const imagem =
+        canvas.toDataURL(
+          'image/png',
+          1
+        );
 
       grafico.destroy();
 
       return {
         imagem,
-        valoresMensais
+        valoresMensais: valores
       };
     }
 
@@ -1060,7 +1199,7 @@ $(document).ready(function () {
       doc.setTextColor(255, 255, 255);
 
       doc.text(
-        'FATURAÇÃO POR MÊS',
+        'FATURAÇÃO POR MÊS / ANO',
         marginLeft + 3,
         startY + 6
       );
