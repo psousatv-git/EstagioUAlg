@@ -58,14 +58,51 @@
                     <div class="card">
                         <div class="card-header">
                             <!-- Formulario para escolha do ano do Orçamento - Default = Ano Corrente -->
-                            <div class="btn btn-info text-white text-left">
-                                <form onsubmit="return false;">
-                                    <label style="text-align: left" for="anoCorrente">Orçamento do Ano:
-                                        <input id="anoCorrente" style="text-align: right" type="text"
-                                        autofocus>
-                                    </label>
-                                    <button type="button" class="btn btn-dark" onclick="mudaAno()" >Alterar</button>
-                                </form>
+                            <div class="d-flex align-items-center flex-wrap">
+
+                                <!-- ESCOLHA DO ANO -->
+                                <div class="btn btn-info text-white text-left mr-2">
+                                    <form
+                                        onsubmit="return false;"
+                                        class="d-flex align-items-center mb-0"
+                                    >
+                                        <label
+                                            class="mb-0 mr-2"
+                                            for="anoCorrente"
+                                        >
+                                            Orçamento do Ano:
+                            
+                                            <input
+                                                id="anoCorrente"
+                                                class="ml-1"
+                                                style="text-align: right; width: 80px;"
+                                                type="text"
+                                                autofocus
+                                            >
+                                        </label>
+                            
+                                        <button
+                                            type="button"
+                                            class="btn btn-dark btn-sm"
+                                            onclick="mudaAno()"
+                                        >
+                                            Alterar
+                                        </button>
+                                    </form>
+                                </div>
+                            
+                                <!-- EXPORTAR EXECUÇÃO ORÇAMENTAL -->
+                                <button
+                                    type="button"
+                                    id="exportarExecucaoPDF"
+                                    class="btn btn-danger"
+                                    onclick="exportarExecucaoGeralPDF()"
+                                    title="Exportar execução orçamental geral para PDF"
+                                >
+                                    <i class="fas fa-file-pdf mr-1"></i>
+                                    Execução Orçamental
+                                </button>
+                            
                             </div>
                         </div>
                         
@@ -106,9 +143,13 @@
     <script src="../../vendors/datatables/datatables.min.js"></script>
     <!-- Charts -->
     <script src="../../vendors/charts/chart.umd.min.js"></script>
+    <!-- jsPDF autoTable -->
+    <script src="../../vendors/pdf/jspdf.umd.min.js"></script>
+    <script src="../../vendors/pdf/jspdf.plugin.autotable.min.js"></script>
+    <!-- SheetJS (XLSX) -->
+    <script src="../../vendors/pdf/xlsx.full.min.js"></script>
 
     <!-- JS de Página -->
-    <!--script>document.getElementById("anoCorrente").value = new Date().getFullYear();</script-->    
     <script src="js/orcamentoDashboard.js"></script>
     
 </body>

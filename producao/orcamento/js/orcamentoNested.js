@@ -1240,7 +1240,7 @@ $(document).ready(function () {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
 
-      doc.text('EXECUÇÃO ORÇAMENTAL — FATURAÇÃO', marginLeft, 10);
+      doc.text('EXECUÇÃO ORÇAMENTAL — RUBRICA', marginLeft, 10);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
