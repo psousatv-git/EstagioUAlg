@@ -1010,207 +1010,662 @@ async function exportarReembolsos({
 
 
 // ==========================================================
-// PDF
+// PDF - RELATÓRIO DE REEMBOLSOS
 // ==========================================================
 function criarDocumentoReembolsosPDF(
-    grupos,
-    {
-      processos = processosGlobais,
-      escopo = 'global'
-    } = {}
-  ) {
-    const { jsPDF } = window.jspdf;
+  grupos,
+  {
+    processos = processosGlobais,
+    escopo = 'global'
+  } = {}
+) {
 
-    /*
-    * O PDF global e o PDF do modal usam exatamente
-    * o mesmo formato e o mesmo layout.
-    */
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
+  // ========================================================
+  // VERIFICAÇÕES
+  // ========================================================
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    throw new Error('A biblioteca jsPDF não está disponível.');
+  }
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
+  const { jsPDF } = window.jspdf;
 
-    const marginLeft = 10;
-    const marginRight = 10;
-    const tableWidth = pageWidth - marginLeft - marginRight;
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
 
-    let startY = 28;
+  if (typeof doc.autoTable !== 'function') {
+    throw new Error(
+      'A biblioteca jsPDF AutoTable não está disponível.'
+    );
+  }
 
-    let totalPedidoGeral = 0;
-    let totalReembolsoGeral = 0;
-    let totalFaturadoGeral = 0;
-    let totalFaturasOrfasGeral = 0;
+  // ========================================================
+  // DIMENSÕES
+  // ========================================================
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
 
-    const candidatura =
-      processos?.[0] ||
-      processosGlobais?.[0] ||
-      {};
+  const marginLeft = 10;
+  const marginRight = 10;
 
-    // ========================================================
-    // CABEÇALHO DO DOCUMENTO
-    // ========================================================
-    function adicionarCabecalho() {
-      const data = new Date().toLocaleDateString('pt-PT');
+  const tableWidth =
+    pageWidth -
+    marginLeft -
+    marginRight;
 
-      const codigoCandidatura =
-        candidatura.candidatura ||
-        candidatura.codigo_candidatura ||
-        'N/D';
+  let startY = 30;
 
-      const designacaoCandidatura =
-        candidatura.nome ||
-        candidatura.designacao_candidatura ||
-        '';
+  // ========================================================
+  // TOTAIS GERAIS
+  // ========================================================
+  let totalPedidoGeral = 0;
+  let totalReembolsoGeral = 0;
+  let totalFaturadoGeral = 0;
 
-      const estadoCandidatura =
-        candidatura.estado
-          ? ` | ${candidatura.estado}`
-          : '';
+  let quantidadeFaturasGeral = 0;
+  let quantidadeFaturasOrfas = 0;
+  let totalFaturasOrfasGeral = 0;
 
-      doc.setTextColor(0, 0, 0);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
+  const totaisPorTipoFatura = {};
 
-      doc.text(
-        'RELATÓRIO DE REEMBOLSOS',
-        marginLeft,
-        10
-      );
+  // ========================================================
+  // DADOS DA CANDIDATURA
+  // ========================================================
+  const candidatura =
+    processos?.[0] ||
+    processosGlobais?.[0] ||
+    {};
 
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
+  // ========================================================
+  // FORMATAÇÃO LOCAL DE DATA
+  // ========================================================
+  function formatDatePDF(valor) {
 
-      const textoCandidatura = cleanPdfText(
+    if (!valor) {
+      return '-';
+    }
+
+    const data =
+      String(valor)
+        .substring(0, 10);
+
+    const partes =
+      data.split('-');
+
+    if (partes.length !== 3) {
+      return cleanPdfText(valor);
+    }
+
+    const [ano, mes, dia] =
+      partes;
+
+    return `${dia}-${mes}-${ano}`;
+  }
+
+  // ========================================================
+  // NOVA PÁGINA
+  // ========================================================
+  function adicionarNovaPagina() {
+
+    doc.addPage();
+
+    adicionarCabecalho();
+
+    startY = 30;
+  }
+
+  // ========================================================
+  // CABEÇALHO PRINCIPAL
+  // ========================================================
+  function adicionarCabecalho() {
+
+    const dataGeracao =
+      new Date()
+        .toLocaleDateString('pt-PT');
+
+    const codigoCandidatura =
+      candidatura.candidatura ||
+      candidatura.codigo_candidatura ||
+      'N/D';
+
+    const designacaoCandidatura =
+      candidatura.nome ||
+      candidatura.designacao_candidatura ||
+      '';
+
+    const estadoCandidatura =
+      candidatura.estado
+        ? ` | ${candidatura.estado}`
+        : '';
+
+    // ------------------------------------------------------
+    // TÍTULO
+    // ------------------------------------------------------
+    doc.setTextColor(0, 0, 0);
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.setFontSize(12);
+
+    doc.text(
+      'RELATÓRIO DE REEMBOLSOS',
+      marginLeft,
+      10
+    );
+
+    // ------------------------------------------------------
+    // CANDIDATURA
+    // ------------------------------------------------------
+    doc.setFont(
+      'helvetica',
+      'normal'
+    );
+
+    doc.setFontSize(8.5);
+
+    const textoCandidatura =
+      cleanPdfText(
         `Candidatura: ${codigoCandidatura}` +
-        `${designacaoCandidatura ? ` - ${designacaoCandidatura}` : ''}` +
+        (
+          designacaoCandidatura
+            ? ` - ${designacaoCandidatura}`
+            : ''
+        ) +
         estadoCandidatura
       );
 
-      const linhasCandidatura = doc.splitTextToSize(
+    const linhasCandidatura =
+      doc.splitTextToSize(
         textoCandidatura,
-        pageWidth - marginLeft - marginRight - 5
+        pageWidth -
+        marginLeft -
+        marginRight -
+        35
       );
 
-      doc.text(
-        linhasCandidatura,
-        marginLeft,
-        16
-      );
+    doc.text(
+      linhasCandidatura,
+      marginLeft,
+      16
+    );
 
-      doc.text(
-        `Gerado em: ${data}`,
-        pageWidth - marginRight,
-        10,
+    // ------------------------------------------------------
+    // DATA
+    // ------------------------------------------------------
+    doc.text(
+      `Gerado em: ${dataGeracao}`,
+      pageWidth - marginRight,
+      10,
+      {
+        align: 'right'
+      }
+    );
+
+    // ------------------------------------------------------
+    // LINHA
+    // ------------------------------------------------------
+    doc.setDrawColor(
+      180,
+      180,
+      180
+    );
+
+    doc.line(
+      marginLeft,
+      23,
+      pageWidth - marginRight,
+      23
+    );
+  }
+
+  // ========================================================
+  // CALCULAR TOTAL FATURADO DO ITEM / PROCESSO
+  // ========================================================
+  function calcularTotalFaturadoItem(item) {
+
+    const faturas =
+      Array.isArray(item?.faturas)
+        ? item.faturas
+        : [];
+
+    return faturas.reduce(
+      (total, fatura) =>
+        total +
+        (
+          Number(fatura.fact_valor) ||
+          0
+        ),
+      0
+    );
+  }
+
+  // ========================================================
+  // TOTAL FATURADO DO GRUPO
+  // ========================================================
+  function calcularTotalFaturadoGrupo(grupo) {
+
+    return Object.values(
+      grupo?.processos || {}
+    ).reduce(
+      (total, item) =>
+        total +
+        calcularTotalFaturadoItem(item),
+      0
+    );
+  }
+
+  // ========================================================
+  // ACUMULAR FATURAÇÃO POR TIPO
+  // ========================================================
+  function acumularTotaisPorTipo(faturas) {
+
+    if (!Array.isArray(faturas)) {
+      return;
+    }
+
+    faturas.forEach(fatura => {
+
+      const tipo =
+        String(
+          fatura.fact_tipo ||
+          'SEM TIPO'
+        )
+          .trim()
+          .toUpperCase();
+
+      if (!totaisPorTipoFatura[tipo]) {
+
+        totaisPorTipoFatura[tipo] = {
+          quantidade: 0,
+          valor: 0
+        };
+      }
+
+      totaisPorTipoFatura[tipo]
+        .quantidade += 1;
+
+      totaisPorTipoFatura[tipo]
+        .valor +=
+          Number(fatura.fact_valor) ||
+          0;
+    });
+  }
+
+  // ========================================================
+  // FATURAÇÃO POR MÊS
+  // ========================================================
+  function calcularFaturacaoMensal() {
+
+    const meses =
+      Array(12).fill(0);
+
+    grupos.forEach(grupo => {
+
+      Object.values(
+        grupo?.processos || {}
+      ).forEach(item => {
+
+        const faturas =
+          Array.isArray(item.faturas)
+            ? item.faturas
+            : [];
+
+        faturas.forEach(fatura => {
+
+          if (!fatura.fact_data) {
+            return;
+          }
+
+          const partes =
+            String(fatura.fact_data)
+              .substring(0, 10)
+              .split('-');
+
+          if (partes.length !== 3) {
+            return;
+          }
+
+          const mes =
+            Number(partes[1]);
+
+          if (
+            mes < 1 ||
+            mes > 12
+          ) {
+            return;
+          }
+
+          meses[mes - 1] +=
+            Number(fatura.fact_valor) ||
+            0;
+        });
+      });
+    });
+
+    return meses;
+  }
+
+  // ========================================================
+  // CRIAR IMAGEM DO GRÁFICO
+  // ========================================================
+  function criarImagemGraficoMensal() {
+
+    const canvas =
+      document.createElement('canvas');
+
+    canvas.width = 1200;
+    canvas.height = 500;
+
+    const contexto =
+      canvas.getContext('2d');
+
+    const valoresMensais =
+      calcularFaturacaoMensal();
+
+    const meses = [
+      'Jan.',
+      'Fev.',
+      'Mar.',
+      'Abr.',
+      'Mai.',
+      'Jun.',
+      'Jul.',
+      'Ago.',
+      'Set.',
+      'Out.',
+      'Nov.',
+      'Dez.'
+    ];
+
+    // ------------------------------------------------------
+    // VALORES SOBRE AS BARRAS
+    // ------------------------------------------------------
+    const pluginValores = {
+
+      id:
+        'pluginValoresReembolsos',
+
+      afterDatasetsDraw(chart) {
+
+        const { ctx } =
+          chart;
+
+        ctx.save();
+
+        ctx.font =
+          'bold 16px Arial';
+
+        ctx.fillStyle =
+          '#212529';
+
+        ctx.textAlign =
+          'center';
+
+        ctx.textBaseline =
+          'bottom';
+
+        const dataset =
+          chart.data.datasets[0];
+
+        const meta =
+          chart.getDatasetMeta(0);
+
+        meta.data.forEach(
+          (barra, index) => {
+
+            const valor =
+              Number(
+                dataset.data[index]
+              ) || 0;
+
+            if (valor === 0) {
+              return;
+            }
+
+            ctx.fillText(
+              formatCurrency(valor),
+              barra.x,
+              barra.y - 8
+            );
+          }
+        );
+
+        ctx.restore();
+      }
+    };
+
+    const grafico =
+      new Chart(
+        contexto,
         {
-          align: 'right'
+          type: 'bar',
+
+          data: {
+            labels: meses,
+
+            datasets: [
+              {
+                label: 'Faturação',
+
+                data:
+                  valoresMensais,
+
+                backgroundColor:
+                  '#17a2b8',
+
+                borderColor:
+                  '#117a8b',
+
+                borderWidth: 1
+              }
+            ]
+          },
+
+          plugins: [
+            pluginValores
+          ],
+
+          options: {
+
+            responsive: false,
+
+            animation: false,
+
+            maintainAspectRatio:
+              false,
+
+            layout: {
+              padding: {
+                top: 30,
+                right: 10,
+                left: 10,
+                bottom: 10
+              }
+            },
+
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+
+            scales: {
+
+              x: {
+                grid: {
+                  display: false
+                }
+              },
+
+              y: {
+
+                beginAtZero: true,
+
+                ticks: {
+
+                  callback(valor) {
+
+                    return new Intl
+                      .NumberFormat(
+                        'pt-PT',
+                        {
+                          notation:
+                            'compact',
+
+                          maximumFractionDigits:
+                            1
+                        }
+                      )
+                      .format(valor);
+                  }
+                }
+              }
+            }
+          }
         }
       );
 
-      doc.setDrawColor(180, 180, 180);
+    grafico.update();
 
-      doc.line(
-        marginLeft,
-        21,
-        pageWidth - marginRight,
-        21
-      );
-    }
-
-    // ========================================================
-    // NOVA PÁGINA
-    // ========================================================
-    function adicionarNovaPagina() {
-      doc.addPage();
-
-      startY = 28;
-
-      adicionarCabecalho();
-    }
-
-    // ========================================================
-    // TOTAL DE FATURAS DO GRUPO
-    // ========================================================
-    function calcularTotalFaturadoGrupo(grupo) {
-      return Object.values(grupo?.processos || {})
-        .reduce((totalGrupo, item) => {
-          const totalProcesso = (item?.faturas || [])
-            .reduce(
-              (totalFaturas, fatura) =>
-                totalFaturas +
-                (Number(fatura.fact_valor) || 0),
-              0
-            );
-
-          return totalGrupo + totalProcesso;
-        }, 0);
-    }
-
-    // ========================================================
-    // RESUMO FINAL
-    // ========================================================
-    function adicionarResumoFinal() {
-      const diferencialGeral =
-        totalPedidoGeral -
-        Math.abs(totalReembolsoGeral);
-
-      /*
-      * O resumo ocupa aproximadamente 45 mm.
-      * Se não houver espaço, é criada uma nova página.
-      */
-      if (startY > pageHeight - 55) {
-        adicionarNovaPagina();
-      }
-
-      doc.setFillColor(33, 37, 41);
-
-      doc.rect(
-        marginLeft,
-        startY,
-        tableWidth,
-        9,
-        'F'
+    const imagem =
+      canvas.toDataURL(
+        'image/png',
+        1
       );
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(255, 255, 255);
+    grafico.destroy();
 
-      doc.text(
-        'RESUMO',
-        marginLeft + 3,
-        startY + 6
+    return {
+      imagem,
+      valoresMensais
+    };
+  }
+
+  // ========================================================
+  // CABEÇALHO DO GRUPO PP
+  // ========================================================
+  function adicionarCabecalhoGrupo(grupo) {
+
+    const isOrfao =
+      grupo.key === 'ORFAO';
+
+    if (
+      startY >
+      pageHeight - 35
+    ) {
+      adicionarNovaPagina();
+    }
+
+    // ------------------------------------------------------
+    // TOTAL DO GRUPO
+    // ------------------------------------------------------
+    const totalPedido =
+      Number(
+        grupo.totalPedido
+      ) || 0;
+
+    const totalReembolso =
+      Number(
+        grupo.totalReembolso
+      ) || 0;
+
+    const totalFaturado =
+      calcularTotalFaturadoGrupo(
+        grupo
       );
 
-      doc.setTextColor(0, 0, 0);
+    const aReceber =
+      totalPedido -
+      Math.abs(
+        totalReembolso
+      );
+
+    // ------------------------------------------------------
+    // BARRA DO TÍTULO
+    // ------------------------------------------------------
+    doc.setFillColor(
+      33,
+      37,
+      41
+    );
+
+    doc.rect(
+      marginLeft,
+      startY,
+      tableWidth,
+      9,
+      'F'
+    );
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.setFontSize(10);
+
+    doc.setTextColor(
+      255,
+      255,
+      255
+    );
+
+    doc.text(
+      isOrfao
+        ? 'FATURAS ÓRFÃS'
+        : String(grupo.key),
+      marginLeft + 3,
+      startY + 6
+    );
+
+    doc.setTextColor(
+      0,
+      0,
+      0
+    );
+
+    // ------------------------------------------------------
+    // RESUMO DO GRUPO
+    // ------------------------------------------------------
+    if (isOrfao) {
 
       doc.autoTable({
-        startY: startY + 11,
+
+        startY:
+          startY + 11,
 
         body: [
           [
-            'Total faturado',
-            formatCurrency(totalFaturadoGeral)
-          ],
-          [
-            'Total de pedidos',
-            formatCurrency(totalPedidoGeral)
-          ],
-          [
-            'Total de reembolsos',
-            formatCurrency(totalReembolsoGeral)
-          ],
-          [
-            'A Receber',
-            formatCurrency(diferencialGeral)
-          ],
-          [
-            'Faturas órfãs',
-            formatCurrency(totalFaturasOrfasGeral)
-          ],
+            {
+              content:
+                'Total das faturas órfãs',
+
+              styles: {
+                fontStyle:
+                  'bold',
+
+                fillColor:
+                  [240, 240, 240]
+              }
+            },
+
+            {
+              content:
+                formatCurrency(
+                  totalFaturado
+                ),
+
+              styles: {
+                halign:
+                  'right'
+              }
+            }
+          ]
         ],
 
         theme: 'grid',
@@ -1220,297 +1675,1398 @@ function criarDocumentoReembolsosPDF(
           right: marginRight
         },
 
-        tableWidth: 105,
+        tableWidth: 90,
 
         styles: {
-          fontSize: 9,
-          cellPadding: 2,
+          fontSize: 8,
+          cellPadding: 1.7,
           valign: 'middle'
         },
 
         columnStyles: {
           0: {
-            cellWidth: 65,
-            fontStyle: 'bold',
-            fillColor: [245, 245, 245]
+            cellWidth: 55
           },
 
           1: {
-            cellWidth: 40,
-            halign: 'right'
+            cellWidth: 35
           }
         }
       });
 
-      startY = doc.lastAutoTable.finalY + 8;
-    }
-
-    // ========================================================
-    // INÍCIO DO DOCUMENTO
-    // ========================================================
-    adicionarCabecalho();
-
-    // ========================================================
-    // GRUPOS
-    // ========================================================
-    grupos.forEach(grupo => {
-      if (
-        !grupo ||
-        !grupo.processos ||
-        Object.keys(grupo.processos).length === 0
-      ) {
-        return;
-      }
-
-      if (startY > pageHeight - 45) {
-        adicionarNovaPagina();
-      }
-
-      const totalPedido = Number(grupo.totalPedido) || 0;
-      const totalReembolso = Number(grupo.totalReembolso) || 0;
-      const totalFaturado = calcularTotalFaturadoGrupo(grupo);
-
-
-      totalPedidoGeral += totalPedido;
-      totalReembolsoGeral += totalReembolso;
-      totalFaturadoGeral += totalFaturado;
-
-      if (grupo.key === 'ORFAO') {
-        totalFaturasOrfasGeral += totalFaturado;
-      }
-
-      /*
-      * Mantém o cabeçalho de grupo já existente
-      * no seu ficheiro.
-      */
-      adicionarCabecalhoGrupoPDF(
-        doc,
-        grupo,
-        {
-          startY,
-          marginLeft,
-          tableWidth
-        }
-      );
-
-      /*
-      * O segundo argumento true faz com que
-      * a coluna Faturação seja sempre incluída.
-      */
-      const rows = criarLinhasPDF(grupo, true);
+    } else {
 
       doc.autoTable({
-        startY: startY + 7,
 
-        /*
-        * Global e modal têm sempre as mesmas
-        * quatro colunas.
-        */
-        head: [[
-          'Processo',
-          'Designação',
-          'Faturação',
-          'Resumo'
-        ]],
+        startY:
+          startY + 11,
 
-        body: rows,
+        body: [
+          [
+            {
+              content: 'Pedido',
+
+              styles: {
+                fontStyle:
+                  'bold',
+
+                fillColor:
+                  [240, 240, 240]
+              }
+            },
+
+            {
+              content:
+                formatCurrency(
+                  totalPedido
+                ),
+
+              styles: {
+                halign:
+                  'right'
+              }
+            },
+
+            {
+              content:
+                'Reembolso',
+
+              styles: {
+                fontStyle:
+                  'bold',
+
+                fillColor:
+                  [240, 240, 240]
+              }
+            },
+
+            {
+              content:
+                formatCurrency(
+                  totalReembolso
+                ),
+
+              styles: {
+                halign:
+                  'right'
+              }
+            },
+
+            {
+              content:
+                'A Receber',
+
+              styles: {
+                fontStyle:
+                  'bold',
+
+                fillColor:
+                  [240, 240, 240]
+              }
+            },
+
+            {
+              content:
+                formatCurrency(
+                  aReceber
+                ),
+
+              styles: {
+                halign:
+                  'right'
+              }
+            },
+
+            {
+              content:
+                'Faturado',
+
+              styles: {
+                fontStyle:
+                  'bold',
+
+                fillColor:
+                  [240, 240, 240]
+              }
+            },
+
+            {
+              content:
+                formatCurrency(
+                  totalFaturado
+                ),
+
+              styles: {
+                halign:
+                  'right'
+              }
+            }
+          ]
+        ],
 
         theme: 'grid',
 
         margin: {
           left: marginLeft,
-          right: marginRight,
-          top: 25,
-          bottom: 15
+          right: marginRight
         },
 
         styles: {
-          fontSize: 6.8,
-          cellPadding: 1.3,
-          overflow: 'linebreak',
+          fontSize: 7.5,
+          cellPadding: 1.5,
           valign: 'middle'
         },
 
-        headStyles: {
-          fillColor: [23, 162, 184],
-          textColor: 255,
-          fontStyle: 'bold',
-          halign: 'center'
+        columnStyles: {
+          0: { cellWidth: 20 },
+          1: { cellWidth: 28 },
+
+          2: { cellWidth: 22 },
+          3: { cellWidth: 28 },
+
+          4: { cellWidth: 22 },
+          5: { cellWidth: 28 },
+
+          6: { cellWidth: 20 },
+          7: { cellWidth: 22 }
+        }
+      });
+    }
+
+    startY =
+      doc.lastAutoTable.finalY +
+      6;
+  }
+
+  // ========================================================
+  // CABEÇALHO / RESUMO DO PROCESSO
+  // ========================================================
+  function adicionarCabecalhoProcesso(
+    grupo,
+    item
+  ) {
+
+    const processo =
+      item.processo || {};
+
+    const faturas =
+      Array.isArray(item.faturas)
+        ? item.faturas
+        : [];
+
+    const padm =
+      processo.padm ||
+      processo.proces_check ||
+      '-';
+
+    const designacao =
+      cleanPdfText(
+        processo.designacao ||
+        'Processo sem designação'
+      );
+
+    const tituloProcesso =
+      `${padm} — ${designacao}`;
+
+    const tituloLinhas =
+      doc.splitTextToSize(
+        tituloProcesso,
+        tableWidth - 6
+      );
+
+    const alturaLinhaTitulo =
+      4;
+
+    const alturaTitulo =
+      Math.max(
+        9,
+        5 +
+        tituloLinhas.length *
+        alturaLinhaTitulo
+      );
+
+    const alturaNecessaria =
+      alturaTitulo + 30;
+
+    if (
+      startY >
+      pageHeight -
+      alturaNecessaria
+    ) {
+      adicionarNovaPagina();
+    }
+
+    // ------------------------------------------------------
+    // MOVIMENTOS DESTE PROCESSO / GRUPO
+    // ------------------------------------------------------
+    const pedidos =
+      filtrarMovimentosGrupo(
+        processo,
+        grupo.key,
+        91
+      );
+
+    const reembolsos =
+      filtrarMovimentosGrupo(
+        processo,
+        grupo.key,
+        92
+      );
+
+    const pedidoValor =
+      somarMovimentos(
+        pedidos
+      );
+
+    const reembolsoValor =
+      somarMovimentos(
+        reembolsos
+      );
+
+    const aReceber =
+      pedidoValor -
+      Math.abs(
+        reembolsoValor
+      );
+
+    const totalFaturadoProcesso =
+      calcularTotalFaturadoItem(
+        item
+      );
+
+    // ------------------------------------------------------
+    // TÍTULO
+    // ------------------------------------------------------
+    doc.setFillColor(
+      52,
+      58,
+      64
+    );
+
+    doc.rect(
+      marginLeft,
+      startY,
+      tableWidth,
+      alturaTitulo,
+      'F'
+    );
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.setFontSize(8.5);
+
+    doc.setTextColor(
+      255,
+      255,
+      255
+    );
+
+    doc.text(
+      tituloLinhas,
+      marginLeft + 3,
+      startY + 5,
+      {
+        lineHeightFactor:
+          1.15
+      }
+    );
+
+    doc.setTextColor(
+      0,
+      0,
+      0
+    );
+
+    // ------------------------------------------------------
+    // PROCESSO ÓRFÃO
+    // ------------------------------------------------------
+    if (
+      grupo.key === 'ORFAO'
+    ) {
+
+      doc.autoTable({
+
+        startY:
+          startY +
+          alturaTitulo +
+          2,
+
+        body: [
+          [
+            {
+              content:
+                'Faturado',
+
+              styles: {
+                fontStyle:
+                  'bold',
+
+                fillColor:
+                  [240, 240, 240]
+              }
+            },
+
+            {
+              content:
+                formatCurrency(
+                  totalFaturadoProcesso
+                ),
+
+              styles: {
+                halign:
+                  'right'
+              }
+            },
+
+            {
+              content:
+                'N.º de faturas',
+
+              styles: {
+                fontStyle:
+                  'bold',
+
+                fillColor:
+                  [240, 240, 240]
+              }
+            },
+
+            {
+              content:
+                String(
+                  faturas.length
+                ),
+
+              styles: {
+                halign:
+                  'center'
+              }
+            }
+          ]
+        ],
+
+        theme: 'grid',
+
+        margin: {
+          left: marginLeft,
+          right: marginRight
         },
 
-        /*
-        * Larguras ajustadas à folha A4 portrait.
-        * A largura útil é aproximadamente 190 mm.
-        */
+        tableWidth: 100,
+
+        styles: {
+          fontSize: 7.5,
+          cellPadding: 1.5,
+          valign: 'middle'
+        },
+
         columnStyles: {
-          0: {cellWidth: 22, valign: 'top', halign: 'center'},
-          1: {cellWidth: 75, valign: 'top'},
-          2: {cellWidth: 70, valign: 'top'},
-          3: {cellWidth: 23, valign: 'top'}
+          0: { cellWidth: 25 },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 20 }
+        }
+      });
+
+    } else {
+
+      // ----------------------------------------------------
+      // PROCESSO NORMAL
+      // ----------------------------------------------------
+      doc.autoTable({
+
+        startY:
+          startY +
+          alturaTitulo +
+          2,
+
+        body: [
+          [
+            {
+              content:
+                'Pedido',
+
+              styles: {
+                fontStyle:
+                  'bold',
+
+                fillColor:
+                  [240, 240, 240]
+              }
+            },
+
+            {
+              content:
+                formatCurrency(
+                  pedidoValor
+                ),
+
+              styles: {
+                halign:
+                  'right'
+              }
+            },
+
+            {
+              content:
+                'Reembolso',
+
+              styles: {
+                fontStyle:
+                  'bold',
+
+                fillColor:
+                  [240, 240, 240]
+              }
+            },
+
+            {
+              content:
+                formatCurrency(
+                  reembolsoValor
+                ),
+
+              styles: {
+                halign:
+                  'right'
+              }
+            },
+
+            {
+              content:
+                'A Receber',
+
+              styles: {
+                fontStyle:
+                  'bold',
+
+                fillColor:
+                  [240, 240, 240]
+              }
+            },
+
+            {
+              content:
+                formatCurrency(
+                  aReceber
+                ),
+
+              styles: {
+                halign:
+                  'right'
+              }
+            }
+          ],
+
+          [
+            {
+              content:
+                'Faturado',
+
+              styles: {
+                fontStyle:
+                  'bold',
+
+                fillColor:
+                  [240, 240, 240]
+              }
+            },
+
+            {
+              content:
+                formatCurrency(
+                  totalFaturadoProcesso
+                ),
+
+              styles: {
+                halign:
+                  'right'
+              }
+            },
+
+            {
+              content:
+                'N.º de faturas',
+
+              styles: {
+                fontStyle:
+                  'bold',
+
+                fillColor:
+                  [240, 240, 240]
+              }
+            },
+
+            {
+              content:
+                String(
+                  faturas.length
+                ),
+
+              styles: {
+                halign:
+                  'center'
+              }
+            },
+
+            {
+              content: '',
+              colSpan: 2
+            }
+          ]
+        ],
+
+        theme: 'grid',
+
+        margin: {
+          left: marginLeft,
+          right: marginRight
+        },
+
+        styles: {
+          fontSize: 7.5,
+          cellPadding: 1.5,
+          valign: 'middle',
+          overflow:
+            'linebreak'
+        },
+
+        columnStyles: {
+          0: { cellWidth: 25 },
+          1: { cellWidth: 35 },
+
+          2: { cellWidth: 27 },
+          3: { cellWidth: 35 },
+
+          4: { cellWidth: 25 },
+          5: { cellWidth: 43 }
         },
 
         didDrawPage() {
           adicionarCabecalho();
         }
       });
+    }
+
+    startY =
+      doc.lastAutoTable.finalY +
+      3;
+  }
+
+  // ========================================================
+  // TABELA DE FATURAS DO PROCESSO
+  // ========================================================
+  function adicionarFaturasProcesso(item) {
+
+    const faturas =
+      Array.isArray(item.faturas)
+        ? item.faturas
+        : [];
+
+    // ------------------------------------------------------
+    // SEM FATURAS
+    // ------------------------------------------------------
+    if (
+      faturas.length === 0
+    ) {
+
+      doc.autoTable({
+
+        startY,
+
+        body: [
+          [
+            'Este processo não possui faturas.'
+          ]
+        ],
+
+        theme: 'grid',
+
+        margin: {
+          left: marginLeft,
+          right: marginRight
+        },
+
+        styles: {
+          fontSize: 8,
+
+          textColor: [
+            100,
+            100,
+            100
+          ],
+
+          fillColor: [
+            250,
+            250,
+            250
+          ],
+
+          cellPadding: 2
+        }
+      });
 
       startY =
-        doc.lastAutoTable.finalY + 8;
-    });
+        doc.lastAutoTable.finalY +
+        7;
 
-    /*
-    * O resumo é sempre apresentado:
-    * tanto no global como no modal.
-    */
-    adicionarResumoFinal();
-
-    adicionarPaginacaoPDF(doc);
-
-    return doc;
-  }
-
-  function adicionarCabecalhoGrupoPDF(
-    doc,
-    grupo,
-    {
-      startY,
-      marginLeft,
-      tableWidth
-    }
-  ) {
-  
-    const isOrfao = grupo.key === 'ORFAO';
-  
-    // ==========================================================
-    // COR DO CABEÇALHO
-    // ==========================================================
-    if (isOrfao) {
-      doc.setFillColor(255, 245, 200);
-    } else {
-      doc.setFillColor(235, 235, 235);
-    }
-  
-    doc.rect(
-      marginLeft,
-      startY - 4,
-      tableWidth,
-      8,
-      'F'
-    );
-  
-    // ==========================================================
-    // TÍTULO
-    // ==========================================================
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-  
-    doc.text(
-      isOrfao ? 'Faturas Órfãs' : String(grupo.key),
-      marginLeft + 3,
-      startY + 1
-    );
-  
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-  
-    // ==========================================================
-    // FATURAS ÓRFÃS
-    // ==========================================================
-    if (isOrfao) {
-  
-      const totalFaturasOrfas = Object.values(grupo.processos || {})
-        .reduce((total, item) => {
-  
-          const totalProcesso = (item.faturas || [])
-            .reduce(
-              (subtotal, fatura) =>
-                subtotal + (Number(fatura.fact_valor) || 0),
-              0
-            );
-  
-          return total + totalProcesso;
-  
-        }, 0);
-  
-      doc.text(
-        `Total: ${formatCurrency(totalFaturasOrfas)}`,
-        marginLeft + 45,
-        startY + 1
-      );
-  
       return;
     }
-  
-    // ==========================================================
-    // PEDIDOS / REEMBOLSOS NORMAIS
-    // ==========================================================
-    const totalPedido =
-      Number(grupo.totalPedido) || 0;
-  
-    const totalReembolso =
-      Number(grupo.totalReembolso) || 0;
-  
-    const diferencial =
-      totalPedido - Math.abs(totalReembolso);
-  
-    doc.text(
-      [
-        `P: ${formatCurrency(totalPedido)}`,
-        `R: ${formatCurrency(totalReembolso)}`,
-        `Dif.: ${formatCurrency(diferencial)}`
-      ].join(' | '),
-      marginLeft + 45,
-      startY + 1
-    );
+
+    // ------------------------------------------------------
+    // ORDENAR FATURAS
+    // ------------------------------------------------------
+    const faturasOrdenadas =
+      [...faturas]
+        .sort(
+          (a, b) => {
+
+            const dataA =
+              a.fact_data
+                ? new Date(
+                    a.fact_data
+                  ).getTime()
+                : 0;
+
+            const dataB =
+              b.fact_data
+                ? new Date(
+                    b.fact_data
+                  ).getTime()
+                : 0;
+
+            return dataA - dataB;
+          }
+        );
+
+    // ------------------------------------------------------
+    // LINHAS
+    // ------------------------------------------------------
+    const linhas =
+      faturasOrdenadas.map(
+        fatura => [
+
+          cleanPdfText(
+            fatura.ent_nome ||
+            '-'
+          ),
+
+          formatDatePDF(
+            fatura.fact_data
+          ),
+
+          [
+            fatura.fact_tipo,
+            fatura.fact_num
+          ]
+            .filter(Boolean)
+            .join(' ') ||
+            '-',
+
+          formatExpediente(
+            fatura.fact_expediente
+          ) ||
+            '-',
+
+          fatura.fact_auto_num ||
+            '-',
+
+          formatDatePDF(
+            fatura.fact_auto_data
+          ),
+
+          Number(
+            fatura.fact_iva
+          ) ||
+            0,
+
+          Number(
+            fatura.fact_valor
+          ) ||
+            0
+        ]
+      );
+
+    // ------------------------------------------------------
+    // TABELA
+    // ------------------------------------------------------
+    doc.autoTable({
+
+      startY,
+
+      head: [[
+        'Entidade',
+        'Data',
+        'Fatura',
+        'Expediente',
+        'Auto',
+        'Data do auto',
+        'IVA',
+        'Valor'
+      ]],
+
+      body:
+        linhas,
+
+      theme:
+        'grid',
+
+      margin: {
+        left:
+          marginLeft,
+
+        right:
+          marginRight,
+
+        top: 27,
+
+        bottom: 15
+      },
+
+      styles: {
+        fontSize: 6.7,
+        cellPadding: 1.3,
+        overflow: 'linebreak',
+        valign: 'middle'
+      },
+
+      headStyles: {
+        fillColor: [
+          23,
+          162,
+          184
+        ],
+
+        textColor: 255,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+
+      columnStyles: {
+
+        0: {
+          cellWidth: 42
+        },
+
+        1: {
+          cellWidth: 18,
+          halign: 'center'
+        },
+
+        2: {
+          cellWidth: 28
+        },
+
+        3: {
+          cellWidth: 26
+        },
+
+        4: {
+          cellWidth: 16,
+          halign: 'center'
+        },
+
+        5: {
+          cellWidth: 20,
+          halign: 'center'
+        },
+
+        6: {
+          cellWidth: 20,
+          halign: 'right'
+        },
+
+        7: {
+          cellWidth: 20,
+          halign: 'right'
+        }
+      },
+
+      didParseCell(data) {
+
+        if (
+          data.section ===
+            'body' &&
+          [6, 7].includes(
+            data.column.index
+          )
+        ) {
+
+          data.cell.text = [
+            formatCurrency(
+              data.cell.raw
+            )
+          ];
+        }
+      },
+
+      didDrawPage() {
+        adicionarCabecalho();
+      }
+    });
+
+    startY =
+      doc.lastAutoTable.finalY +
+      8;
   }
 
+  // ========================================================
+  // RESUMO FINAL
+  // ========================================================
+  function adicionarResumoFinal() {
 
-function criarLinhasPDF(grupo, incluirFaturacao = false) {
-  return Object.values(grupo.processos).map(item => {
-    const processo = item.processo || {};
+    const aReceberGeral =
+      totalPedidoGeral -
+      Math.abs(
+        totalReembolsoGeral
+      );
 
-    const pedidos = filtrarMovimentosGrupo(
-      processo,
-      grupo.key,
-      91
-    );
+    const tiposOrdenados =
+      Object.entries(
+        totaisPorTipoFatura
+      ).sort(
+        ([tipoA], [tipoB]) =>
+          tipoA.localeCompare(
+            tipoB,
+            'pt-PT'
+          )
+      );
 
-    const reembolsos = filtrarMovimentosGrupo(
-      processo,
-      grupo.key,
-      92
-    );
+    // ------------------------------------------------------
+    // LINHAS PRINCIPAIS
+    // ------------------------------------------------------
+    const linhasResumo = [
+      [
+        'Total faturado',
+        '',
+        formatCurrency(
+          totalFaturadoGeral
+        )
+      ],
 
-    const pedidoValor = somarMovimentos(pedidos);
-    const reembolsoValor = somarMovimentos(reembolsos);
-    const diferencial = pedidoValor - Math.abs(reembolsoValor);
+      [
+        'Total de pedidos',
+        '',
+        formatCurrency(
+          totalPedidoGeral
+        )
+      ],
 
-    const resumo = [
-      `P: ${formatCurrency(pedidoValor)}`,
-      `R: ${formatCurrency(reembolsoValor)}`,
-      `Dif.: ${formatCurrency(diferencial)}`
-    ].join('\n');
+      [
+        'Total de reembolsos',
+        '',
+        formatCurrency(
+          totalReembolsoGeral
+        )
+      ],
 
-    /*
-     * Ordem das colunas:
-     * 1 - Processo
-     * 2 - Designação
-     * 3 - Faturação
-     * 4 - Resumo
-     */
-    const row = [
-      processo.padm || processo.proces_check || '-',
-      cleanPdfText(processo.designacao || '-')
+      [
+        'A Receber',
+        '',
+        formatCurrency(
+          aReceberGeral
+        )
+      ],
+
+      [
+        'Faturas órfãs',
+        String(
+          quantidadeFaturasOrfas
+        ),
+        formatCurrency(
+          totalFaturasOrfasGeral
+        )
+      ]
     ];
 
-    if (incluirFaturacao) {
-      row.push(formatarFaturasPDF(item.faturas));
+    // ------------------------------------------------------
+    // FATURAÇÃO POR TIPO
+    // ------------------------------------------------------
+    if (
+      tiposOrdenados.length > 0
+    ) {
+
+      linhasResumo.push(
+        [
+          'Faturação por tipo',
+          'Registos',
+          'Valor'
+        ]
+      );
+
+      tiposOrdenados.forEach(
+        ([tipo, totais]) => {
+
+          linhasResumo.push(
+            [
+              tipo,
+
+              String(
+                totais.quantidade
+              ),
+
+              formatCurrency(
+                totais.valor
+              )
+            ]
+          );
+        }
+      );
     }
 
-    row.push(resumo);
+    const alturaEstimada =
+      25 +
+      linhasResumo.length *
+      7;
 
-    return row;
+    if (
+      startY >
+      pageHeight -
+      alturaEstimada
+    ) {
+
+      adicionarNovaPagina();
+    }
+
+    // ------------------------------------------------------
+    // TÍTULO RESUMO
+    // ------------------------------------------------------
+    doc.setFillColor(
+      33,
+      37,
+      41
+    );
+
+    doc.rect(
+      marginLeft,
+      startY,
+      tableWidth,
+      9,
+      'F'
+    );
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.setFontSize(10);
+
+    doc.setTextColor(
+      255,
+      255,
+      255
+    );
+
+    doc.text(
+      'RESUMO',
+      marginLeft + 3,
+      startY + 6
+    );
+
+    doc.setTextColor(
+      0,
+      0,
+      0
+    );
+
+    // ------------------------------------------------------
+    // TABELA RESUMO
+    // ------------------------------------------------------
+    doc.autoTable({
+
+      startY:
+        startY + 11,
+
+      body:
+        linhasResumo,
+
+      theme:
+        'grid',
+
+      margin: {
+        left:
+          marginLeft,
+
+        right:
+          marginRight
+      },
+
+      tableWidth:
+        120,
+
+      styles: {
+        fontSize: 9,
+        cellPadding: 2,
+        valign: 'middle'
+      },
+
+      columnStyles: {
+
+        0: {
+          cellWidth: 65
+        },
+
+        1: {
+          cellWidth: 20,
+          halign: 'center'
+        },
+
+        2: {
+          cellWidth: 35,
+          halign: 'right'
+        }
+      },
+
+      didParseCell(data) {
+
+        // ----------------------------------------------------
+        // LINHAS PRINCIPAIS
+        // ----------------------------------------------------
+        if (
+          data.row.index < 5
+        ) {
+
+          if (
+            data.column.index === 0
+          ) {
+
+            data.cell.styles
+              .fontStyle =
+                'bold';
+
+            data.cell.styles
+              .fillColor =
+                [
+                  245,
+                  245,
+                  245
+                ];
+          }
+
+          if (
+            data.column.index === 1
+          ) {
+
+            data.cell.styles
+              .fillColor =
+                [
+                  245,
+                  245,
+                  245
+                ];
+          }
+        }
+
+        // ----------------------------------------------------
+        // CABEÇALHO DOS TIPOS
+        // ----------------------------------------------------
+        if (
+          tiposOrdenados.length >
+            0 &&
+          data.row.index === 5
+        ) {
+
+          data.cell.styles
+            .fillColor =
+              [
+                23,
+                162,
+                184
+              ];
+
+          data.cell.styles
+            .textColor =
+              [
+                255,
+                255,
+                255
+              ];
+
+          data.cell.styles
+            .fontStyle =
+              'bold';
+        }
+      }
+    });
+
+    startY =
+      doc.lastAutoTable.finalY +
+      8;
+  }
+
+  // ========================================================
+  // GRÁFICO MENSAL
+  // ========================================================
+  function adicionarGraficoMensal() {
+
+    // Sem Chart.js, simplesmente não cria o gráfico.
+    if (
+      typeof Chart ===
+      'undefined'
+    ) {
+      return;
+    }
+
+    const alturaGrafico =
+      72;
+
+    if (
+      startY >
+      pageHeight -
+      alturaGrafico -
+      20
+    ) {
+
+      adicionarNovaPagina();
+    }
+
+    const {
+      imagem,
+      valoresMensais
+    } =
+      criarImagemGraficoMensal();
+
+    const totalGrafico =
+      valoresMensais.reduce(
+        (total, valor) =>
+          total + valor,
+        0
+      );
+
+    // ------------------------------------------------------
+    // CABEÇALHO
+    // ------------------------------------------------------
+    doc.setFillColor(
+      33,
+      37,
+      41
+    );
+
+    doc.rect(
+      marginLeft,
+      startY,
+      tableWidth,
+      9,
+      'F'
+    );
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.setFontSize(10);
+
+    doc.setTextColor(
+      255,
+      255,
+      255
+    );
+
+    doc.text(
+      'FATURAÇÃO POR MÊS',
+      marginLeft + 3,
+      startY + 6
+    );
+
+    doc.setTextColor(
+      255,
+      255,
+      255
+    );
+
+    doc.setFont(
+      'helvetica',
+      'normal'
+    );
+
+    doc.setFontSize(8);
+
+    doc.text(
+      `Total: ${formatCurrency(totalGrafico)}`,
+      pageWidth -
+      marginRight -
+      3,
+      startY + 6,
+      {
+        align: 'right'
+      }
+    );
+
+    // ------------------------------------------------------
+    // IMAGEM
+    // ------------------------------------------------------
+    doc.addImage(
+      imagem,
+      'PNG',
+      marginLeft,
+      startY + 11,
+      tableWidth,
+      alturaGrafico
+    );
+
+    startY +=
+      alturaGrafico +
+      17;
+  }
+
+  // ========================================================
+  // CONSTRUÇÃO DO DOCUMENTO
+  // ========================================================
+  adicionarCabecalho();
+
+  grupos.forEach(grupo => {
+
+    if (
+      !grupo ||
+      !grupo.processos ||
+      Object.keys(
+        grupo.processos
+      ).length === 0
+    ) {
+      return;
+    }
+
+    // ------------------------------------------------------
+    // TOTAIS GERAIS DO PP
+    // ------------------------------------------------------
+    const totalPedido =
+      Number(
+        grupo.totalPedido
+      ) || 0;
+
+    const totalReembolso =
+      Number(
+        grupo.totalReembolso
+      ) || 0;
+
+    const totalFaturadoGrupo =
+      calcularTotalFaturadoGrupo(
+        grupo
+      );
+
+    totalPedidoGeral +=
+      totalPedido;
+
+    totalReembolsoGeral +=
+      totalReembolso;
+
+    totalFaturadoGeral +=
+      totalFaturadoGrupo;
+
+    // ------------------------------------------------------
+    // FATURAS ÓRFÃS
+    // ------------------------------------------------------
+    if (
+      grupo.key ===
+      'ORFAO'
+    ) {
+
+      totalFaturasOrfasGeral +=
+        totalFaturadoGrupo;
+    }
+
+    // ------------------------------------------------------
+    // CABEÇALHO PP
+    // ------------------------------------------------------
+    adicionarCabecalhoGrupo(
+      grupo
+    );
+
+    // ------------------------------------------------------
+    // PROCESSOS DO GRUPO
+    // ------------------------------------------------------
+    const itens =
+      Object.values(
+        grupo.processos
+      ).sort(
+        (a, b) => {
+
+          const designacaoA =
+            a.processo
+              ?.designacao ||
+            '';
+
+          const designacaoB =
+            b.processo
+              ?.designacao ||
+            '';
+
+          return String(
+            designacaoA
+          ).localeCompare(
+            String(
+              designacaoB
+            ),
+            'pt-PT'
+          );
+        }
+      );
+
+    itens.forEach(item => {
+
+      const faturas =
+        Array.isArray(
+          item.faturas
+        )
+          ? item.faturas
+          : [];
+
+      // ----------------------------------------------------
+      // CONTADORES
+      // ----------------------------------------------------
+      quantidadeFaturasGeral +=
+        faturas.length;
+
+      if (
+        grupo.key ===
+        'ORFAO'
+      ) {
+
+        quantidadeFaturasOrfas +=
+          faturas.length;
+      }
+
+      acumularTotaisPorTipo(
+        faturas
+      );
+
+      // ----------------------------------------------------
+      // PROCESSO
+      // ----------------------------------------------------
+      adicionarCabecalhoProcesso(
+        grupo,
+        item
+      );
+
+      adicionarFaturasProcesso(
+        item
+      );
+    });
   });
+
+  // ========================================================
+  // RESUMO
+  // ========================================================
+  adicionarResumoFinal();
+
+  // ========================================================
+  // GRÁFICO
+  // ========================================================
+  adicionarGraficoMensal();
+
+  // ========================================================
+  // PAGINAÇÃO
+  // ========================================================
+  adicionarPaginacaoPDF(
+    doc
+  );
+
+  return doc;
 }
 
 

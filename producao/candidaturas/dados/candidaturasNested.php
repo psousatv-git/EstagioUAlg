@@ -104,6 +104,7 @@ try {
         // Busca todas as faturas do processo, independentemente dos pedidos
         $qryFaturas = "SELECT
                 fact_proces_check,
+                e.ent_nome,
                 fact_finan_pp,
                 fact_tipo,
                 fact_data,
@@ -114,6 +115,7 @@ try {
                 COALESCE(fact_finan_max_elegivel, 0) AS fact_elegivel,
                 COALESCE(fact_finan_fundo, 0) AS fact_fundo
             FROM factura
+            LEFT JOIN entidade e ON e.ent_cod = fact_ent_cod
             WHERE fact_proces_check = ?
             ORDER BY fact_auto_num, fact_data";
 
