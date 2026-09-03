@@ -36,6 +36,7 @@ try {
             candsub_dt_fim AS termo,
             candsub_max_elegivel AS elegivel,
             candsub_forfait AS defice_financeiro,
+            candsub_iva AS iva,
             candsub_fundo AS taxa,
             ca.cand_logo AS logo,
             ca.cand_documento AS documento_aviso,

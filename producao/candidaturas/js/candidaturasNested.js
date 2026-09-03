@@ -5,7 +5,7 @@ let table;
 
 
 function formatCurrency(value){
-  return new Intl.NumberFormat('de-DE', {minimumFractionDigits: 2}).format(value || 0) + '€';
+  return new Intl.NumberFormat('de-DE', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(value || 0) + '€';
 }
 
 function formatExpediente(str){
@@ -468,7 +468,7 @@ $(document).ready(function () {
                         <div class="card-body py-2 px-2">
                             <div class="small">Elegível</div>
                             <div class="text-right font-weight-bold">
-                                ${formatCurrency(json.elegivel)}
+                                ${formatCurrency(json.elegivel * json.iva)}
                             </div>
                         </div>
                     </div>
@@ -480,7 +480,7 @@ $(document).ready(function () {
                         <div class="card-body py-2 px-2">
                             <div class="small">Fundo</div>
                             <div class="text-right font-weight-bold">
-                                ${formatCurrency(json.elegivel * json.taxa)}
+                                ${formatCurrency(json.elegivel * json.iva * json.taxa)}
                             </div>
                         </div>
                     </div>
@@ -490,9 +490,9 @@ $(document).ready(function () {
                 <div class="col-md-2">
                     <div class="card bg-warning text-dark h-100">
                         <div class="card-body py-2 px-2">
-                            <div class="small">Pedido → Faturado</div>
+                            <div class="small">Pedido → Faturado - confirmar IVA</div>
                             <div class="text-right font-weight-bold">
-                                ${formatCurrency(totalPedidos)}
+                                ${formatCurrency(totalPedidos * json.iva)}
                             </div>
                         </div>
                     </div>
@@ -502,9 +502,9 @@ $(document).ready(function () {
                 <div class="col-md-2">
                     <div class="card bg-success text-white h-100">
                         <div class="card-body py-2 px-2">
-                            <div class="small">Reembolsos</div>
+                            <div class="small">Reembolsos - confirmar IVA</div>
                             <div class="text-right font-weight-bold">
-                                ${formatCurrency(totalReembolsos * json.taxa)}
+                                ${formatCurrency(totalReembolsos)}
                             </div>
                         </div>
                     </div>
@@ -516,7 +516,7 @@ $(document).ready(function () {
                         <div class="card-body py-2 px-2">
                             <div class="small">Saldo</div>
                             <div class="text-right font-weight-bold">
-                                ${formatCurrency(totalPedidos - (totalReembolsos * json.taxa))}
+                                ${formatCurrency(totalPedidos - totalReembolsos)}
                             </div>
                         </div>
                     </div>

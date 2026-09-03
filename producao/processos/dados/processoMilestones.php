@@ -6,7 +6,7 @@ $codigoProcesso = isset($_GET['codigoProcesso'])
     : 0;
 
 $formato = $_GET['formato'] ?? 'html';
-$descritivos = [1, 4, 5, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 26, 27, 28, 29, 30];
+$descritivos = [1, 4, 5, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 21, 26, 27, 28, 29, 30, 60];
 
 /**
  * 1️⃣ Buscar dados
@@ -27,6 +27,7 @@ function buscarResultados(PDO $conn, int $codigoProcesso, array $descritivos): a
             CONCAT(p1.proces_18cpv1, ' - ', cpv1.cpv1_nome) AS cpv1,
             CONCAT(p1.proces_18cpv2, ' - ', cpv2.cpv2_nome) AS cpv2,
             p1.proces_cand AS candidatura,
+            p1.proces_prz_exec AS prazo,
 
             d.descr_cod AS codigo,
             d.descr_nome AS documento,
@@ -93,13 +94,17 @@ function criarContexto(array $resultados): array
             'contrato' => null,
             'movimentos' => [],
             'valorMovimento4' => null,
+            'valorMovimento21' => null,
             'erro' => false,
             'mensagem' => null,
             'nome' => null,
             'resumo' => null,
             'candidatura' => null,
             'cpv1' => null,
-            'cpv2' => null
+            'cpv2' => null,
+            'prazo' => null,
+            'data18' => null,
+            'data60' => null
         ];
     }
 
@@ -110,13 +115,32 @@ function criarContexto(array $resultados): array
     ));
 
     $valorMovimento4 = null;
+    $valorMovimento21 = null;
+    $data18 = null;
+    $data60 = null;
 
     foreach ($resultados as $r) {
-        if ((int)$r['codigo'] === 4) {
+
+        $codigo = (int)$r['codigo'];
+
+        if ($codigo === 4) {
             $valorMovimento4 = $r['valor_documento'] !== null
                 ? (float)$r['valor_documento']
                 : null;
-            break;
+        }
+
+        if ($codigo === 21) {
+            $valorMovimento21 = $r['valor_documento'] !== null
+                ? (int)$r['valor_documento']
+                : 0;
+        }
+
+        if ($codigo === 18 && !empty($r['data_documento'])) {
+            $data18 = $r['data_documento'];
+        }
+
+        if ($codigo === 60 && !empty($r['data_documento'])) {
+            $data60 = $r['data_documento'];
         }
     }
 
@@ -124,11 +148,8 @@ function criarContexto(array $resultados): array
     $mensagem = null;
 
     if ($valorMovimento4 === null || $valorMovimento4 == 0) {
-
         $erro = true;
-    
         $mensagem = 'Início de Procedimento inexistente nos movimentos do processo.';
-
     }
 
     return [
@@ -137,16 +158,67 @@ function criarContexto(array $resultados): array
         'contrato' => $base['contrato'] ?? null,
         'movimentos' => $movimentos,
         'valorMovimento4' => $valorMovimento4,
+        'valorMovimento21' => $valorMovimento21,
         'erro' => $erro,
         'mensagem' => $mensagem,
         'nome' => ($base['padm'] ?? null) . '-' . ($base['processo'] ?? null),
-        'resumo' => ($base['resumo'] ?? null),
+        'resumo' => $base['resumo'] ?? null,
         'candidatura' => $base['candidatura'] ?? null,
         'cpv1' => $base['cpv1'] ?? null,
-        'cpv2' => $base['cpv2'] ?? null
+        'cpv2' => $base['cpv2'] ?? null,
+
+        // NOVOS
+        'prazo' => isset($base['prazo']) ? (int)$base['prazo'] : null,
+        'data18' => $data18,
+        'data60' => $data60
     ];
 }
+/**
+ * Calcular a data de termo
+ */
 
+ function calcularDataTermoPrevisto(array $ctx): ?string
+ {
+     if (empty($ctx['data18']) || empty($ctx['prazo'])) {
+         return null;
+     }
+ 
+     $dataBase = new DateTime($ctx['data18']);
+ 
+     /*
+      * Se existir movimento 60 e for posterior ao movimento 18,
+      * passa a ser a nova data-base.
+      */
+     if (!empty($ctx['data60'])) {
+ 
+         $data60 = new DateTime($ctx['data60']);
+ 
+         if ($data60 > $dataBase) {
+             $dataBase = $data60;
+         }
+     }
+ 
+     /*
+      * Prazo contratual inicial
+      */
+     $prazo = (int)$ctx['prazo'];
+ 
+     /*
+      * Descritivo 21:
+      * dias adicionais resultantes de
+      * prorrogação/suspensão da obra.
+      */
+     $diasProrrogacao = (int)($ctx['valorMovimento21'] ?? 0);
+ 
+     /*
+      * Prazo total = prazo inicial + prorrogação/suspensão
+      */
+     $prazoTotal = $prazo + $diasProrrogacao;
+ 
+     $dataBase->modify("+{$prazoTotal} days");
+ 
+     return $dataBase->format('d-m-Y');
+ }
 /**
  * 3️⃣ Definir fases + regra do movimento 4 + Excessões pelo tipo de procedimento
  */
@@ -165,9 +237,9 @@ function definirFases(array $ctx): array
      */
     $dispensas = [
 
-        'Ajuste Direto Simplificado' => [5, 11, 12, 13, 18, 26, 27, 28, 29, 30],
-        'Aquisição de Serviços'      => [11, 12, 19, 26, 27, 29, 30],
-        'Aquisição de Bens'          => [11, 12, 19, 26, 28, 29, 30],
+        'Ajuste Direto Simplificado' => [5, 11, 12, 13, 18, 19, 26, 27, 28, 29, 30],
+        'Aquisição de Serviços'      => [11, 12, 26, 27, 29, 30],
+        'Aquisição de Bens'          => [11, 12, 26, 28, 29, 30],
         'Empreitada'                 => [11, 12, 27, 28],
 
     ];
@@ -195,7 +267,7 @@ function definirFases(array $ctx): array
         $ctx['valorMovimento4'] < 10000
     ) {
 
-        $movimentos = array_diff($movimentos, [16, 17, 19]);
+        $movimentos = array_diff($movimentos, [16, 17]);
 
     }
 
@@ -230,8 +302,11 @@ function filtrarPontosControle(array $resultados, array $fases): array
     $pontos = [];
 
     foreach ($resultados as $r) {
+
         if (in_array($r['codigo'], $fases)) {
+
             $pontos[] = [
+                'codigo'    => (int)$r['codigo'], // NOVO
                 'documento' => $r['documento'],
                 'data_doc'  => $r['data_documento'],
                 'data_val'  => $r['data_validacao_documento'],
@@ -248,28 +323,57 @@ function filtrarPontosControle(array $resultados, array $fases): array
 /**
  * 5️⃣ Render HTML
  */
-function gerarHTMLStepper(array $pontos): void
+function gerarHTMLStepper(array $pontos, array $ctx): void
 {
     echo '<div class="stepper-wrapper">';
+
+    $dataTermoPrevisto = calcularDataTermoPrevisto($ctx);
 
     foreach ($pontos as $i => $pt) {
 
         $status = 'nulo';
         $dias = '';
 
-        if ($pt['data_doc'] != 0) {
+        // Descritivo apresentado no stepper
+        $descritivo = $pt['documento'];
 
-            $status = 'conforme';
+        /*
+         * DESCRITIVOS 26, 27 e 28
+         *
+         * Em vez do número de dias, apresenta sempre
+         * a Data de Termo Previsto.
+         */
+        if (in_array((int)$pt['codigo'], [26, 27, 28], true)) {
 
-            if ($i > 0 && $pontos[$i - 1]['data_val'] != 0) {
+            $dias = $dataTermoPrevisto ?? '';
 
-                $d1 = new DateTime($pt['data_val']);
-                $d2 = new DateTime($pontos[$i - 1]['data_val']);
+            // Altera apenas o texto apresentado
+            $descritivo = 'Termo Previsto';
 
-                $dias = $d1->diff($d2)->days;
+            if ($pt['data_doc'] != 0) {
+                $status = 'conforme';
+            }
 
-                if ($pt['documento'] === 'BaseGov' && $dias > 20) {
-                    $status = 'desconforme';
+        } else {
+
+            /*
+             * Restantes descritivos:
+             * mantém o comportamento atual.
+             */
+            if ($pt['data_doc'] != 0) {
+
+                $status = 'conforme';
+
+                if ($i > 0 && $pontos[$i - 1]['data_val'] != 0) {
+
+                    $d1 = new DateTime($pt['data_val']);
+                    $d2 = new DateTime($pontos[$i - 1]['data_val']);
+
+                    $dias = $d1->diff($d2)->days;
+
+                    if ($pt['documento'] === 'BaseGov' && $dias > 20) {
+                        $status = 'desconforme';
+                    }
                 }
             }
         }
@@ -277,7 +381,9 @@ function gerarHTMLStepper(array $pontos): void
         $badge = $dias !== ''
             ? '<span class="badge rounded-pill bg-'
                 . ($status === 'desconforme' ? 'danger' : 'info')
-                . ' text-white badge-notification" style="position:absolute;top:0;right:0;transform:translate(50%,-50%);">'
+                . ' text-white badge-notification" '
+                . 'style="position:absolute;top:0;right:0;'
+                . 'transform:translate(50%,-50%);">'
                 . $dias .
               '</span>'
             : '';
@@ -285,32 +391,31 @@ function gerarHTMLStepper(array $pontos): void
         echo '
         <div class="stepper-item ' . $status . '">
 
-            <div class="step-counter position-relative" tabindex="0"
+            <div class="step-counter position-relative"
+                tabindex="0"
                 role="button"
                 data-bs-toggle="popover"
                 data-bs-trigger="focus"
                 data-bs-placement="top"
-                title="' . ' [E:' . $pt['data_doc'] . ' - V:' . $pt['data_val'] . '] - ' . $pt['notas'] . '"
+                title="[E:' . $pt['data_doc'] .
+                    ' - V:' . $pt['data_val'] .
+                    '] - ' . $pt['notas'] . '"
                 data-bs-content="' . $pt['data_val'] . '">
 
                 ' . ($i + 1) . $badge . '
+
             </div>
 
-            <div class="step-name badge bg-' . ($status === 'conforme' ? 'success' : 
-                ($status === 'desconforme' ? 'danger' : 'secondary')) . ' text-white">'
-                . $pt['documento'] .
-            '</div>
-        <!--
-            <div class="step-name badge bg-' . ($status === 'conforme' ? 'success' : 
-                ($status === 'desconforme' ? 'danger' : 'secondary')) . ' text-white">'
-                . $pt['data_doc'] .
+            <div class="step-name badge bg-' .
+                ($status === 'conforme'
+                    ? 'success'
+                    : ($status === 'desconforme'
+                        ? 'danger'
+                        : 'secondary'))
+                . ' text-white">'
+                . $descritivo .
             '</div>
 
-            <div class="step-name badge bg-' . ($status === 'conforme' ? 'success' : 
-                ($status === 'desconforme' ? 'danger' : 'secondary')) . ' text-white">'
-                . $pt['data_val'] .
-            '</div>
-        -->
         </div>';
     }
 
@@ -354,4 +459,4 @@ if ($formato === 'json') {
     exit;
 }
 
-gerarHTMLStepper($pontos);
+gerarHTMLStepper($pontos, $ctx);

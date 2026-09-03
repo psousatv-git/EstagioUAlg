@@ -49,9 +49,12 @@ $(document).ready(function () {
                 : 0;
     }
 
-    // 🔹 Calcula coluna Apoio
+    // 
     function calcularApoio(row) {
-        return (row.elegivel || 0) * (row.taxa || 0);
+        return (row.elegivel || 0) * (row.iva || 0) * (row.taxa || 0);
+    }
+    function calcularValorAprovado(row) {
+        return (row.elegivel || 0) * (row.iva || 0);
     }
 
     fetch("dados/candidaturasDashboard.php")
@@ -74,13 +77,25 @@ $(document).ready(function () {
                             return Formatters.percent.format(data || 0);
                         }
                     },
-
+                    // Valor Aprovado
                     {
-                        data: 'elegivel',
+                        data: null,
                         className: 'dt-body-right',
-                        render: function (data, type) {
-                            if (type === 'sort' || type === 'type') return data || 0;
-                            return Formatters.number.format(data || 0);
+                        render: function (data, type, row) {
+                            const valor = calcularValorAprovado(row);
+                            if (type === 'sort' || type === 'type') return valor;
+                            return Formatters.number.format(valor);
+                        }
+                    },
+
+                    // Coluna calculada Fundo
+                    {
+                        data: null,
+                        className: 'dt-body-right',
+                        render: function (data, type, row) {
+                            const valor = calcularApoio(row);
+                            if (type === 'sort' || type === 'type') return valor;
+                            return Formatters.number.format(valor);
                         }
                     },
 
@@ -99,17 +114,6 @@ $(document).ready(function () {
                         render: function (data, type) {
                             if (type === 'sort' || type === 'type') return data || 0;
                             return Formatters.number.format(data || 0);
-                        }
-                    },
-
-                    // ✅ Coluna calculada Apoio
-                    {
-                        data: null,
-                        className: 'dt-body-right',
-                        render: function (data, type, row) {
-                            const valor = calcularApoio(row);
-                            if (type === 'sort' || type === 'type') return valor;
-                            return Formatters.number.format(valor);
                         }
                     },
 
@@ -179,8 +183,6 @@ $(document).ready(function () {
                     });
                 }
             });
-
-            console.table(data);
             
             // 🔹 Arrays auxiliares
             dataTable.rows().every(function () {
@@ -248,7 +250,7 @@ $(document).ready(function () {
 
                                 <div>
                                     <h5>
-                                        ${Formatters.currency.format(dados.elegivel)}
+                                        ${Formatters.currency.format(dados.elegivel * dados.iva)}
                                         <span class="h6">
                                             - ${Formatters.percent.format(dados.elegivel_recebido_percent)}
                                         </span>

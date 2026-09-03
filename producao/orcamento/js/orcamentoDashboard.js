@@ -1593,132 +1593,37 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
 
 
         doc.autoTable({
-
             startY: startY + alturaTitulo + 2,
-
             body: [
-
                 [
-                    {
-                        content: 'Regime',
-                        styles: {
-                            fontStyle: 'bold',
-                            fillColor: [240, 240, 240]
-                        }
-                    },
-
+                    {content: 'Regime', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}}, 
                     processo.regime || '-',
-
-                    {
-                        content: 'Linha ORC.',
-                        styles: {
-                            fontStyle: 'bold',
-                            fillColor: [240, 240, 240]
-                        }
-                    },
-
-                    processo.linha_orcamento ||
-                    processo.linha_orc ||
-                    '-',
-
-                    {
-                        content: 'Linha SE.',
-                        styles: {
-                            fontStyle: 'bold',
-                            fillColor: [240, 240, 240]
-                        }
-                    },
-
+                    {content: 'Linha ORC.', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
+                    processo.linha_orcamento || processo.linha_orc || '-',
+                    {content: 'Linha SE.', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
                     processo.linha_se || '-',
-
-                    {
-                        content: 'Limite',
-                        styles: {
-                            fontStyle: 'bold',
-                            fillColor: [240, 240, 240]
-                        }
-                    },
-
-                    {
-                        content: moeda(limite),
-                        styles: { halign: 'right' }
-                    }
+                    {content: 'Limite', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
+                    {content: moeda(limite), styles: { halign: 'right' }}
                 ],
-
                 [
-                    {
-                        content: 'Adjudicado',
-                        styles: {
-                            fontStyle: 'bold',
-                            fillColor: [240, 240, 240]
-                        }
-                    },
-
-                    {
-                        content: moeda(adjudicado),
-                        styles: { halign: 'right' }
-                    },
-
-                    {
-                        content: 'Faturado',
-                        styles: {
-                            fontStyle: 'bold',
-                            fillColor: [240, 240, 240]
-                        }
-                    },
-
-                    {
-                        content: moeda(totalFaturadoProcesso),
-                        styles: { halign: 'right' }
-                    },
-
-                    {
-                        content: 'Saldo',
-                        styles: {
-                            fontStyle: 'bold',
-                            fillColor: [240, 240, 240]
-                        }
-                    },
-
-                    {
-                        content: moeda(saldo),
-                        styles: { halign: 'right' }
-                    },
-
-                    {
-                        content: '',
-                        colSpan: 2
-                    }
+                    {content: 'Adjudicado', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
+                    {content: moeda(adjudicado), styles: { halign: 'right' }},
+                    {content: 'Faturado', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
+                    {content: moeda(totalFaturadoProcesso), styles: { halign: 'right' }},
+                    {content: 'Saldo', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
+                    {content: moeda(saldo), styles: { halign: 'right' }},
+                    {content: '', colSpan: 2}
                 ],
-
                 [
-                    {
-                        content: 'N.º de faturas',
-                        styles: {
-                            fontStyle: 'bold',
-                            fillColor: [240, 240, 240]
-                        }
-                    },
-
-                    {
-                        content: String(faturas.length),
-                        styles: { halign: 'center' }
-                    },
-
-                    {
-                        content: '',
-                        colSpan: 6
-                    }
+                    {content: 'N.º de faturas', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
+                    {content: String(faturas.length), styles: { halign: 'center' }},
+                    {content: '', colSpan: 6}
                 ]
             ],
 
             theme: 'grid',
 
-            margin: {
-                left: marginLeft,
-                right: marginRight
-            },
-
+            margin: {left: marginLeft, right: marginRight},
             styles: {
                 fontSize: 7.5,
                 cellPadding: 1.5,
@@ -1762,20 +1667,10 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
         if (faturas.length === 0) {
 
             doc.autoTable({
-
                 startY,
-
-                body: [
-                    ['Este processo não possui faturas.']
-                ],
-
+                body: [['Este processo não possui faturas.']],
                 theme: 'grid',
-
-                margin: {
-                    left: marginLeft,
-                    right: marginRight
-                },
-
+                margin: {left: marginLeft, right: marginRight},
                 styles: {
                     fontSize: 8,
                     textColor: [100, 100, 100],
@@ -1793,32 +1688,15 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
         const linhas = faturas.map(fatura => [
 
             textoPDF(fatura.ent_nome || '-'),
-
-            dataPT(fatura.fact_data),
-
-            [
-                fatura.fact_tipo,
-                fatura.fact_num
-            ]
-            .filter(Boolean)
-            .join(' ') || '-',
-
-            expediente(fatura.fact_expediente),
-
-            fatura.fact_auto_num || '-',
-
+            dataPT(fatura.fact_data), [fatura.fact_tipo, fatura.fact_num].filter(Boolean).join(' ') || '-',
+            expediente(fatura.fact_expediente), fatura.fact_auto_num || '-',
             dataPT(fatura.fact_auto_data),
-
             numero(fatura.fact_iva),
-
             numero(fatura.fact_valor)
         ]);
 
-
         doc.autoTable({
-
             startY,
-
             head: [[
                 'Entidade',
                 'Data',
@@ -1829,32 +1707,26 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
                 'IVA',
                 'Valor'
             ]],
-
             body: linhas,
-
             theme: 'grid',
-
             margin: {
                 left: marginLeft,
                 right: marginRight,
                 top: 27,
                 bottom: 15
             },
-
             styles: {
                 fontSize: 6.7,
                 cellPadding: 1.3,
                 overflow: 'linebreak',
                 valign: 'middle'
             },
-
             headStyles: {
                 fillColor: [23, 162, 184],
                 textColor: 255,
                 fontStyle: 'bold',
                 halign: 'center'
             },
-
             columnStyles: {
                 0: { cellWidth: 42 },
                 1: { cellWidth: 18, halign: 'center' },
@@ -1869,12 +1741,8 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
             didParseCell(data) {
 
                 if (
-                    data.section === 'body' &&
-                    [6, 7].includes(data.column.index)
-                ) {
-                    data.cell.text = [
-                        moeda(data.cell.raw)
-                    ];
+                    data.section === 'body' && [6, 7].includes(data.column.index)) {
+                    data.cell.text = [moeda(data.cell.raw)];
                 }
             },
 
@@ -1882,7 +1750,6 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
                 adicionarCabecalho();
             }
         });
-
 
         startY = doc.lastAutoTable.finalY + 8;
     }
@@ -1906,10 +1773,7 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
             .toUpperCase();
 
             if (!totaisPorTipoFatura[tipo]) {
-                totaisPorTipoFatura[tipo] = {
-                    quantidade: 0,
-                    valor: 0
-                };
+                totaisPorTipoFatura[tipo] = {quantidade: 0, valor: 0};
             }
 
             totaisPorTipoFatura[tipo].quantidade += 1;
@@ -1928,25 +1792,17 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
 
         rubricas.forEach(rubrica => {
 
-            const processos =
-                Array.isArray(rubrica.processos)
-                    ? rubrica.processos
-                    : [];
+            const processos = Array.isArray(rubrica.processos) ? rubrica.processos: [];
 
             processos.forEach(processo => {
 
-                const faturas =
-                    Array.isArray(processo.faturas)
-                        ? processo.faturas
-                        : [];
+                const faturas = Array.isArray(processo.faturas) ? processo.faturas : [];
 
                 faturas.forEach(fatura => {
 
                     if (!fatura.fact_data) return;
 
-                    const partes = String(fatura.fact_data)
-                        .substring(0, 10)
-                        .split('-');
+                    const partes = String(fatura.fact_data).substring(0, 10).split('-');
 
                     if (partes.length !== 3) return;
 
@@ -1955,13 +1811,9 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
 
                     if (!anoFatura || mes < 1 || mes > 12) return;
 
-                    const chave =
-                        `${anoFatura}-${String(mes).padStart(2, '0')}`;
+                    const chave = `${anoFatura}-${String(mes).padStart(2, '0')}`;
 
-                    if (!Object.prototype.hasOwnProperty.call(
-                        faturacaoPorMes,
-                        chave
-                    )) {
+                    if (!Object.prototype.hasOwnProperty.call(faturacaoPorMes, chave)) {
                         faturacaoPorMes[chave] = 0;
                     }
 
@@ -1974,72 +1826,31 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
         const chaves = Object.keys(faturacaoPorMes).sort();
 
         if (chaves.length === 0) {
-            return {
-                labels: [],
-                valores: []
-            };
+            return {labels: [], valores: []};
         }
 
 
-        const [anoInicial, mesInicial] =
-            chaves[0].split('-').map(Number);
-
-        const [anoFinal, mesFinal] =
-            chaves[chaves.length - 1].split('-').map(Number);
-
-
-        const nomesMeses = [
-            'Jan.',
-            'Fev.',
-            'Mar.',
-            'Abr.',
-            'Mai.',
-            'Jun.',
-            'Jul.',
-            'Ago.',
-            'Set.',
-            'Out.',
-            'Nov.',
-            'Dez.'
-        ];
-
-
+        const [anoInicial, mesInicial] = chaves[0].split('-').map(Number);
+        const [anoFinal, mesFinal] = chaves[chaves.length - 1].split('-').map(Number);
+        const nomesMeses = ['Jan.', 'Fev.', 'Mar.', 'Abr.', 'Mai.', 'Jun.', 'Jul.', 'Ago.', 'Set.', 'Out.', 'Nov.', 'Dez.'];
         const labels = [];
         const valores = [];
 
         let a = anoInicial;
         let m = mesInicial;
 
+        while (a < anoFinal || (a === anoFinal && m <= mesFinal)) {
 
-        while (
-            a < anoFinal ||
-            (a === anoFinal && m <= mesFinal)
-        ) {
-
-            const chave =
-                `${a}-${String(m).padStart(2, '0')}`;
-
-            labels.push(
-                `${nomesMeses[m - 1]} ${a}`
-            );
-
-            valores.push(
-                faturacaoPorMes[chave] || 0
-            );
+            const chave = `${a}-${String(m).padStart(2, '0')}`;
+            labels.push(`${nomesMeses[m - 1]} ${a}`);
+            valores.push(faturacaoPorMes[chave] || 0);
 
             m++;
 
-            if (m > 12) {
-                m = 1;
-                a++;
-            }
+            if (m > 12) {m = 1; a++;}
         }
 
-
-        return {
-            labels,
-            valores
-        };
+        return {labels, valores};
     }
 
 
@@ -2049,14 +1860,9 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
 
     function criarGraficoMensal() {
 
-        const {
-            labels,
-            valores
-        } = calcularFaturacaoMensal();
-
+        const {labels, valores} = calcularFaturacaoMensal();
 
         if (labels.length === 0) return null;
-
 
         const canvas = document.createElement('canvas');
 
@@ -2064,8 +1870,6 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
         canvas.height = 500;
 
         const ctx = canvas.getContext('2d');
-
-
         const pluginValores = {
 
             id: 'valoresExecucaoOrcamental',
@@ -2075,7 +1879,6 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
                 const { ctx } = chart;
 
                 ctx.save();
-
                 ctx.font = 'bold 16px Arial';
                 ctx.fillStyle = '#212529';
                 ctx.textAlign = 'center';
@@ -2086,16 +1889,11 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
 
                 meta.data.forEach((barra, index) => {
 
-                    const valor =
-                        Number(dataset.data[index]) || 0;
+                    const valor = Number(dataset.data[index]) || 0;
 
                     if (valor === 0) return;
 
-                    ctx.fillText(
-                        moeda(valor),
-                        barra.x,
-                        barra.y - 8
-                    );
+                    ctx.fillText(moeda(valor), barra.x, barra.y - 8);
                 });
 
                 ctx.restore();
@@ -2106,11 +1904,8 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
         const grafico = new Chart(ctx, {
 
             type: 'bar',
-
             data: {
-
                 labels,
-
                 datasets: [{
                     label: 'Faturação',
                     data: valores,
@@ -2119,62 +1914,23 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
                     borderWidth: 1
                 }]
             },
-
-            plugins: [
-                pluginValores
-            ],
-
+            plugins: [pluginValores],
             options: {
-
                 responsive: false,
                 animation: false,
                 maintainAspectRatio: false,
-
-                layout: {
-                    padding: {
-                        top: 30,
-                        right: 10,
-                        left: 10,
-                        bottom: 10
-                    }
-                },
-
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-
+                layout: {padding: {top: 30, right: 10, left: 10, bottom: 10}},
+                plugins: {legend: {display: false}},
                 scales: {
-
                     x: {
-
-                        grid: {
-                            display: false
-                        },
-
-                        ticks: {
-                            autoSkip: true,
-                            maxRotation: 45,
-                            minRotation: 0
-                        }
+                        grid: {display: false},
+                        ticks: {autoSkip: true, maxRotation: 45, minRotation: 0}
                     },
-
                     y: {
-
                         beginAtZero: true,
-
                         ticks: {
-
                             callback(valor) {
-
-                                return new Intl.NumberFormat(
-                                    'pt-PT',
-                                    {
-                                        notation: 'compact',
-                                        maximumFractionDigits: 1
-                                    }
-                                ).format(valor);
+                                return new Intl.NumberFormat('pt-PT', {notation: 'compact', maximumFractionDigits: 1}).format(valor);
                             }
                         }
                     }
@@ -2185,16 +1941,12 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
 
         grafico.update();
 
-        const imagem =
-            canvas.toDataURL('image/png', 1);
+        const imagem = canvas.toDataURL('image/png', 1);
 
         grafico.destroy();
 
-
-        return {
-            imagem,
-            valores
-        };
+        return {imagem, valores};
+        
     }
 
 
@@ -2204,200 +1956,73 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
 
     function adicionarResumoGeral() {
 
-        const tipos = Object.entries(
-            totaisPorTipoFatura
-        ).sort(
-            ([a], [b]) =>
-                a.localeCompare(b, 'pt-PT')
-        );
-
-
+        const tipos = Object.entries(totaisPorTipoFatura).sort(([a], [b]) => a.localeCompare(b, 'pt-PT'));
         const linhas = [
-
-            [
-                'Total previsto',
-                '',
-                moeda(totalPrevistoGeral)
-            ],
-
-            [
-                'Total limite dos processos',
-                '',
-                moeda(totalLimiteGeral)
-            ],
-
-            [
-                'Total adjudicado',
-                '',
-                moeda(totalAdjudicadoGeral)
-            ],
-
-            [
-                'Total faturado',
-                '',
-                moeda(totalFaturadoGeral)
-            ],
-
-            [
-                'Saldo',
-                '',
-                moeda(
-                    totalLimiteGeral -
-                    totalAdjudicadoGeral
-                )
-            ],
-
-            [
-                'Processos',
-                '',
-                String(numeroProcessosGeral)
-            ],
-
-            [
-                'Faturas',
-                '',
-                String(numeroFaturasGeral)
-            ]
+            ['Total previsto', '', moeda(totalPrevistoGeral)],
+            ['Total limite dos processos', '', moeda(totalLimiteGeral)],
+            ['Total adjudicado', '', moeda(totalAdjudicadoGeral)],
+            ['Total faturado', '', moeda(totalFaturadoGeral)],
+            ['Saldo', '', moeda(totalLimiteGeral - totalAdjudicadoGeral)],
+            ['Processos', '', String(numeroProcessosGeral)],
+            ['Faturas', '', String(numeroFaturasGeral)]
         ];
 
-
         if (tipos.length > 0) {
-
-            linhas.push([
-                'Faturação por tipo',
-                'Registos',
-                'Valor'
-            ]);
+            linhas.push(['Faturação por tipo', 'Registos', 'Valor']);
 
             tipos.forEach(([tipo, totais]) => {
-
-                linhas.push([
-                    tipo,
-                    String(totais.quantidade),
-                    moeda(totais.valor)
-                ]);
+                linhas.push([tipo, String(totais.quantidade), moeda(totais.valor)]);
             });
         }
 
+        const alturaEstimada = 25 + linhas.length * 7;
 
-        const alturaEstimada =
-            25 +
-            linhas.length * 7;
-
-
-        if (startY > pageHeight - alturaEstimada) {
-            novaPagina();
-        }
-
+        if (startY > pageHeight - alturaEstimada) {novaPagina();}
 
         doc.setFillColor(33, 37, 41);
-
-        doc.rect(
-            marginLeft,
-            startY,
-            tableWidth,
-            9,
-            'F'
-        );
-
-
+        doc.rect(marginLeft, startY, tableWidth, 9, 'F');
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(255, 255, 255);
-
-        doc.text(
-            'RESUMO GERAL',
-            marginLeft + 3,
-            startY + 6
-        );
-
+        doc.text('RESUMO GERAL', marginLeft + 3, startY + 6);
         doc.setTextColor(0, 0, 0);
-
 
         const indiceTipos = 7;
 
-
         doc.autoTable({
-
             startY: startY + 11,
-
             body: linhas,
-
             theme: 'grid',
-
-            margin: {
-                left: marginLeft,
-                right: marginRight
-            },
-
+            margin: {left: marginLeft, right: marginRight},
             tableWidth: 120,
-
-            styles: {
-                fontSize: 9,
-                cellPadding: 2,
-                valign: 'middle'
-            },
-
+            styles: {fontSize: 9, cellPadding: 2, valign: 'middle'},
             columnStyles: {
                 0: { cellWidth: 65 },
-                1: {
-                    cellWidth: 20,
-                    halign: 'center'
-                },
-                2: {
-                    cellWidth: 35,
-                    halign: 'right'
-                }
+                1: {cellWidth: 20, halign: 'center' },
+                2: {cellWidth: 35, halign: 'right'}
             },
 
             didParseCell(data) {
 
                 if (data.row.index < indiceTipos) {
-
+                    
                     if (data.column.index === 0) {
-
                         data.cell.styles.fontStyle = 'bold';
-
-                        data.cell.styles.fillColor = [
-                            245,
-                            245,
-                            245
-                        ];
+                        data.cell.styles.fillColor = [245, 245, 245];
                     }
 
                     if (data.column.index === 1) {
-
-                        data.cell.styles.fillColor = [
-                            245,
-                            245,
-                            245
-                        ];
+                        data.cell.styles.fillColor = [245, 245, 245];
                     }
                 }
 
-
-                if (
-                    tipos.length > 0 &&
-                    data.row.index === indiceTipos
-                ) {
-
-                    data.cell.styles.fillColor = [
-                        23,
-                        162,
-                        184
-                    ];
-
-                    data.cell.styles.textColor = [
-                        255,
-                        255,
-                        255
-                    ];
-
+                if (tipos.length > 0 && data.row.index === indiceTipos) {
+                    data.cell.styles.fillColor = [23, 162, 184];
+                    data.cell.styles.textColor = [255, 255, 255];
                     data.cell.styles.fontStyle = 'bold';
                 }
             }
         });
-
 
         startY = doc.lastAutoTable.finalY + 8;
     }
@@ -2413,71 +2038,29 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
 
         if (!grafico) return;
 
-
         const alturaGrafico = 72;
 
-
-        if (
-            startY >
-            pageHeight -
-            alturaGrafico -
-            20
-        ) {
+        if (startY > pageHeight - alturaGrafico - 20) {
             novaPagina();
         }
 
-
-        const total = grafico.valores.reduce(
-            (acumulado, valor) =>
-                acumulado + valor,
-            0
-        );
-
+        const total = grafico.valores.reduce((acumulado, valor) => acumulado + valor, 0);
 
         doc.setFillColor(33, 37, 41);
-
-        doc.rect(
-            marginLeft,
-            startY,
-            tableWidth,
-            9,
-            'F'
-        );
-
-
+        doc.rect(marginLeft, startY, tableWidth, 9, 'F');
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(255, 255, 255);
-
-        doc.text(
-            'FATURAÇÃO POR MÊS / ANO',
-            marginLeft + 3,
-            startY + 6
-        );
-
+        doc.text('FATURAÇÃO POR MÊS / ANO', marginLeft + 3, startY + 6);
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
+        doc.text(`Total: ${moeda(total)}`, pageWidth - marginRight - 3, startY + 6, { align: 'right' });
 
-        doc.text(
-            `Total: ${moeda(total)}`,
-            pageWidth - marginRight - 3,
-            startY + 6,
-            { align: 'right' }
-        );
-
-
-        doc.addImage(
-            grafico.imagem,
-            'PNG',
-            marginLeft,
-            startY + 11,
-            tableWidth,
-            alturaGrafico
-        );
-
+        doc.addImage(grafico.imagem, 'PNG', marginLeft, startY + 11, tableWidth, alturaGrafico);
 
         startY += alturaGrafico + 17;
+
     }
 
 
@@ -2487,74 +2070,43 @@ function criarDocumentoExecucaoGeralPDF(rubricas, ano) {
 
     adicionarCabecalho();
 
-
     rubricas.forEach(rubrica => {
 
-        const processos =
-            Array.isArray(rubrica.processos)
-                ? rubrica.processos
-                : [];
-
-
-        const totaisRubrica =
-            adicionarRubrica(
-                rubrica,
-                processos
-            );
-
+        const processos = Array.isArray(rubrica.processos) ? rubrica.processos : [];
+        const totaisRubrica = adicionarRubrica(rubrica, processos);
 
         totalPrevistoGeral += totaisRubrica.previsto;
         totalLimiteGeral += totaisRubrica.limite;
         totalAdjudicadoGeral += totaisRubrica.adjudicado;
         totalFaturadoGeral += totaisRubrica.faturado;
-
         numeroProcessosGeral += processos.length;
         numeroFaturasGeral += totaisRubrica.numeroFaturas;
 
-
         processos.forEach(processo => {
 
-            const faturas =
-                Array.isArray(processo.faturas)
-                    ? processo.faturas
-                    : [];
-
-
-            const totalFaturadoProcesso =
-                faturas.reduce(
-                    (total, fatura) =>
-                        total +
-                        numero(fatura.fact_valor),
-                    0
-                );
-
+            const faturas = Array.isArray(processo.faturas) ? processo.faturas : [];
+            const totalFaturadoProcesso = faturas.reduce((total, fatura) => total + numero(fatura.fact_valor), 0);
 
             acumularTipoFatura(faturas);
-
-            adicionarProcesso(
-                processo,
-                totalFaturadoProcesso
-            );
-
+            adicionarProcesso(processo, totalFaturadoProcesso);
             adicionarFaturas(processo);
+
         });
 
-
         startY += 3;
+
     });
 
 
     // Resumo primeiro
     adicionarResumoGeral();
-
     // Gráfico depois
     adicionarGraficoGeral();
-
     // Paginação
     adicionarPaginacaoExecucaoPDF(doc);
 
-
     return doc;
+
 }
 
 
@@ -2566,29 +2118,18 @@ function adicionarPaginacaoExecucaoPDF(doc) {
 
     const totalPaginas = doc.getNumberOfPages();
 
-
     for (let pagina = 1; pagina <= totalPaginas; pagina++) {
 
         doc.setPage(pagina);
 
-        const pageWidth =
-            doc.internal.pageSize.getWidth();
-
-        const pageHeight =
-            doc.internal.pageSize.getHeight();
-
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(90, 90, 90);
+        doc.text(`Página ${pagina} / ${totalPaginas}`, pageWidth - 10, pageHeight - 7, { align: 'right' });
 
-
-        doc.text(
-            `Página ${pagina} / ${totalPaginas}`,
-            pageWidth - 10,
-            pageHeight - 7,
-            { align: 'right' }
-        );
     }
 }
 
@@ -2598,32 +2139,23 @@ function adicionarPaginacaoExecucaoPDF(doc) {
 
 async function exportarTabelaExecucaoPDF() {
 
-    const botao =
-        document.getElementById('exportarTabelaExecucaoPDF');
+    const botao = document.getElementById('exportarTabelaExecucaoPDF');
 
     try {
 
         if (!window.jspdf || !window.jspdf.jsPDF) {
-            throw new Error(
-                'A biblioteca jsPDF não está disponível.'
-            );
+            throw new Error('A biblioteca jsPDF não está disponível.');
         }
 
-        const ano = parseInt(
-            document.getElementById('anoCorrente').value,
-            10
-        );
+        const ano = parseInt(document.getElementById('anoCorrente').value, 10);
 
         if (!validaAno(ano)) {
             return;
         }
 
         if (botao) {
-
             botao.disabled = true;
-
-            botao.innerHTML =
-                '<i class="fas fa-spinner fa-spin mr-1"></i> A gerar PDF...';
+            botao.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> A gerar PDF...';
         }
 
 
@@ -2631,204 +2163,88 @@ async function exportarTabelaExecucaoPDF() {
         // OBTER OS MESMOS DADOS DO DASHBOARD
         // --------------------------------------------------
 
-        const response = await fetch(
-            'dados/orcamentoDashboard.php?anoCorrente=' +
-            encodeURIComponent(ano)
-        );
+        const response = await fetch('dados/orcamentoDashboard.php?anoCorrente=' + encodeURIComponent(ano));
 
         if (!response.ok) {
-
-            throw new Error(
-                `Erro HTTP ${response.status}`
-            );
+            throw new Error(`Erro HTTP ${response.status}`);
         }
 
-        const resultado =
-            await response.json();
-
-
-        const rubricas =
-            Array.isArray(resultado)
-                ? resultado
-                : Array.isArray(resultado.rubricas)
-                    ? resultado.rubricas
-                    : [];
-
+        const resultado = await response.json();
+        const rubricas = Array.isArray(resultado) ? resultado : Array.isArray(resultado.rubricas) ? resultado.rubricas : [];
 
         if (rubricas.length === 0) {
-
-            alert(
-                `Não existem dados de execução orçamental para o ano ${ano}.`
-            );
-
-            return;
+            alert(`Não existem dados de execução orçamental para o ano ${ano}.`);
+            return;           
         }
-
 
         // --------------------------------------------------
         // PREPARAR DADOS
-        // Utiliza a mesma função da DataTable
         // --------------------------------------------------
-
-        const dadosTabela =
-            prepararExecucaoOrcamento(rubricas);
-
-
+        const dadosTabela = prepararExecucaoOrcamento(rubricas);
         // --------------------------------------------------
         // CRIAR PDF
         // --------------------------------------------------
-
-        const doc =
-            criarDocumentoTabelaExecucaoPDF(
-                dadosTabela,
-                ano
-            );
-
+        const doc = criarDocumentoTabelaExecucaoPDF( dadosTabela, ano);
 
         // Abrir no browser, tal como o outro relatório
-        window.open(
-            doc.output('bloburl'),
-            '_blank'
-        );
-
+        window.open(doc.output('bloburl'),'_blank');
 
     } catch (error) {
 
-        console.error(
-            'Erro ao exportar a tabela:',
-            error
-        );
+        console.error('Erro ao exportar a tabela:',error);
 
-        alert(
-            'Não foi possível gerar o relatório.\n\n' +
-            error.message
-        );
+        alert('Não foi possível gerar o relatório.\n\n' + error.message);
 
     } finally {
 
         if (botao) {
-
             botao.disabled = false;
-
-            botao.innerHTML =
-                '<i class="fas fa-file-pdf mr-1"></i> Exportar Tabela';
-        }
+            botao.innerHTML = '<i class="fas fa-file-pdf mr-1"></i> Exportar Tabela';}
     }
 }
-
 
 
 // ==========================================================
 // CRIAR PDF DA DATATABLE
 // ==========================================================
+function criarDocumentoTabelaExecucaoPDF(dados, ano) {
 
-function criarDocumentoTabelaExecucaoPDF(
-    dados,
-    ano
-) {
-
-    const { jsPDF } =
-        window.jspdf;
-
+    const { jsPDF } = window.jspdf;
 
     // ------------------------------------------------------
     // LANDSCAPE
     // ------------------------------------------------------
-
-    const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
-    });
-
+    const doc = new jsPDF({orientation: 'landscape', unit: 'mm', format: 'a4'});
 
     if (typeof doc.autoTable !== 'function') {
-
-        throw new Error(
-            'A biblioteca jsPDF AutoTable não está disponível.'
-        );
+        throw new Error('A biblioteca jsPDF AutoTable não está disponível.');
     }
 
-
-    const pageWidth =
-        doc.internal.pageSize.getWidth();
-
-    const pageHeight =
-        doc.internal.pageSize.getHeight();
-
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const marginLeft = 6;
     const marginRight = 6;
-
 
     // ======================================================
     // CABEÇALHO
     // ======================================================
-
     function adicionarCabecalho() {
 
-        const dataGeracao =
-            new Date().toLocaleDateString('pt-PT');
-
-
-        doc.setTextColor(
-            0,
-            0,
-            0
-        );
-
-
-        doc.setFont(
-            'helvetica',
-            'bold'
-        );
-
+        const dataGeracao = new Date().toLocaleDateString('pt-PT');
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
+        doc.text('EXECUÇÃO ORÇAMENTAL', marginLeft, 10);
 
-        doc.text(
-            'EXECUÇÃO ORÇAMENTAL',
-            marginLeft,
-            10
-        );
-
-
-        doc.setFont(
-            'helvetica',
-            'normal'
-        );
-
+        doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
-
-        doc.text(
-            `Ano: ${ano}`,
-            marginLeft,
-            16
-        );
-
-
+        doc.text(`Ano: ${ano}`, marginLeft, 16);
         doc.setFontSize(8);
+        doc.text(`Gerado em: ${dataGeracao}`, pageWidth - marginRight, 10, {align: 'right'});
 
-        doc.text(
-            `Gerado em: ${dataGeracao}`,
-            pageWidth - marginRight,
-            10,
-            {
-                align: 'right'
-            }
-        );
-
-
-        doc.setDrawColor(
-            180,
-            180,
-            180
-        );
-
-        doc.line(
-            marginLeft,
-            21,
-            pageWidth - marginRight,
-            21
-        );
+        doc.setDrawColor(180, 180, 180 );
+        doc.line(marginLeft, 21, pageWidth - marginRight, 21);
+        
     }
 
 

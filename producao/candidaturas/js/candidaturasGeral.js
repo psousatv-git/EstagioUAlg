@@ -144,8 +144,9 @@ RENDER HISTÓRICO
             </div>
             
             <div class="mb-2">
-              <div>Investimento Aprovado: ${formatCurrency(json.elegivel) || ''} </div>
-              <div>Apoio Aprovado: ${formatCurrency(json.elegivel * json.taxa) || ''}</div>
+              <div>Investimento Aprovado: ${formatCurrency(json.elegivel * json.iva) || ''} </div>
+              <div>IVA (Incluído): ${formatCurrency((json.elegivel  * json.iva) - json.elegivel) || ''}</div>
+              <div>Apoio Aprovado: ${formatCurrency(json.elegivel  * json.iva * json.taxa) || ''}</div>
             </div>
 
           </div>
@@ -376,7 +377,7 @@ function getUrlParameter(name) {
 
 //Formatação de Moeda
 function formatCurrency(value){
-  return new Intl.NumberFormat('de-DE', {minimumFractionDigits: 2}).format(value || 0) + '€';
+  return new Intl.NumberFormat('de-DE', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(value || 0) + '€';
 }
 
 // Formatação de Expediente
