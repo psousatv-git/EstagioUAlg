@@ -82,9 +82,7 @@ function buscarResultados(PDO $conn, int $codigoProcesso, array $descritivos): a
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-/**
- * 2️⃣ Criar contexto único do processo
- */
+/* Criar contexto único do processo*/
 function criarContexto(array $resultados): array
 {
     if (empty($resultados)) {
@@ -103,6 +101,7 @@ function criarContexto(array $resultados): array
             'cpv1' => null,
             'cpv2' => null,
             'prazo' => null,
+            'data14' => null,
             'data18' => null,
             'data60' => null
         ];
@@ -114,10 +113,11 @@ function criarContexto(array $resultados): array
         array_column($resultados, 'codigo')
     ));
 
-    $valorMovimento4 = null;
-    $valorMovimento21 = null;
-    $data18 = null;
-    $data60 = null;
+    $valorMovimento4 = null; /*Início de Procedimento*/
+    $valorMovimento21 = null; /*Prorrogação/Suspensão*/
+    $data14 = null; /*Adjudicação*/
+    $data18 = null; /*Consignação*/
+    $data60 = null; /*Plano de Segurança*/
 
     foreach ($resultados as $r) {
 
@@ -134,11 +134,16 @@ function criarContexto(array $resultados): array
                 ? (int)$r['valor_documento']
                 : 0;
         }
-
+        
+        /* Data de Adjudicação */
+        if ($codigo === 14 && !empty($r['data_documento'])) {
+            $data14 = $r['data_documento'];
+        }
+        /* Data de Consignação */
         if ($codigo === 18 && !empty($r['data_documento'])) {
             $data18 = $r['data_documento'];
         }
-
+        /* Data de Validação do Plano de Segurança */
         if ($codigo === 60 && !empty($r['data_documento'])) {
             $data60 = $r['data_documento'];
         }
@@ -169,59 +174,74 @@ function criarContexto(array $resultados): array
 
         // NOVOS
         'prazo' => isset($base['prazo']) ? (int)$base['prazo'] : null,
+        'data14' => $data14,
         'data18' => $data18,
         'data60' => $data60
     ];
 }
-/**
- * Calcular a data de termo
- */
 
- function calcularDataTermoPrevisto(array $ctx): ?string
- {
-     if (empty($ctx['data18']) || empty($ctx['prazo'])) {
-         return null;
-     }
+/* Calcular a data de termo */
+function calcularDataTermoPrevisto(array $ctx): ?string
+{
+    /*
+     * EMPREITADA
+     * Data-base = movimento 18.
+     * Se existir movimento 60 posterior ao 18,
+     * o movimento 60 passa a ser a nova data-base.
+     */
+    if ($ctx['contrato'] === 'Empreitada') {
+
+        if (empty($ctx['data18']) || empty($ctx['prazo'])) {
+            return null;
+        }
+
+        $dataBase = new DateTime($ctx['data18']);
+
+        if (!empty($ctx['data60'])) {
+            $data60 = new DateTime($ctx['data60']);
+
+            if ($data60 > $dataBase) {
+                $dataBase = $data60;
+            }
+        }
+
+    /*
+     * RESTANTES CONTRATOS
+     * Se existir movimento 18, usa data18.
+     * Caso contrário, usa data14.
+     */
+    } else {
+
+        if (empty($ctx['prazo'])) {
+            return null;
+        }
+
+        if (!empty($ctx['data18'])) {
+            $dataBase = new DateTime($ctx['data18']);
+        } elseif (!empty($ctx['data14'])) {
+            $dataBase = new DateTime($ctx['data14']);
+        } else {
+            return null;
+        }
+    }
+
+    /* Prazo contratual inicial */
+    $prazo = (int)$ctx['prazo'];
+
+    /* Dias adicionais de prorrogação/suspensão */
+    $diasProrrogacao = (int)($ctx['valorMovimento21'] ?? 0);
+
+    /* Prazo total */
+    $prazoTotal = $prazo + $diasProrrogacao;
+
+    /* Calcular data de termo prevista */
+    $dataBase->modify("+{$prazoTotal} days");
+
+    return $dataBase->format('d-m-Y');
+}
+
  
-     $dataBase = new DateTime($ctx['data18']);
- 
-     /*
-      * Se existir movimento 60 e for posterior ao movimento 18,
-      * passa a ser a nova data-base.
-      */
-     if (!empty($ctx['data60'])) {
- 
-         $data60 = new DateTime($ctx['data60']);
- 
-         if ($data60 > $dataBase) {
-             $dataBase = $data60;
-         }
-     }
- 
-     /*
-      * Prazo contratual inicial
-      */
-     $prazo = (int)$ctx['prazo'];
- 
-     /*
-      * Descritivo 21:
-      * dias adicionais resultantes de
-      * prorrogação/suspensão da obra.
-      */
-     $diasProrrogacao = (int)($ctx['valorMovimento21'] ?? 0);
- 
-     /*
-      * Prazo total = prazo inicial + prorrogação/suspensão
-      */
-     $prazoTotal = $prazo + $diasProrrogacao;
- 
-     $dataBase->modify("+{$prazoTotal} days");
- 
-     return $dataBase->format('d-m-Y');
- }
-/**
- * 3️⃣ Definir fases + regra do movimento 4 + Excessões pelo tipo de procedimento
- */
+/* Definir fases + regra do movimento 4 + Excessões pelo tipo de procedimento */
 function definirFases(array $ctx): array
 {
     $fasesBase = [
@@ -232,9 +252,7 @@ function definirFases(array $ctx): array
 
     ];
 
-    /**
-     * Movimentos a ignorar
-     */
+    /*Movimentos a ignorar */
     $dispensas = [
 
         'Ajuste Direto Simplificado' => [5, 11, 12, 13, 18, 19, 26, 27, 28, 29, 30],
@@ -253,15 +271,10 @@ function definirFases(array $ctx): array
 
     }
 
-    /**
-     * Fases base pelo tipo de contrato
-     */
+    /* Fases base pelo tipo de contrato */
     $movimentos = $fasesBase[$ctx['contrato']] ?? [];
 
-    /**
-     * Regra:
-     * movimento 4 < 10000 remove 17
-     */
+    /* Regra: movimento 4 < 10000 remove 17*/
     if (
         isset($ctx['valorMovimento4']) &&
         $ctx['valorMovimento4'] < 10000
@@ -271,9 +284,7 @@ function definirFases(array $ctx): array
 
     }
 
-    /**
-     * Aplicar exceções do procedimento
-     */
+    /* Aplicar exceções do procedimento*/
     if (
         !empty($ctx['procedimento']) &&
         isset($dispensas[$ctx['procedimento']])
@@ -286,17 +297,13 @@ function definirFases(array $ctx): array
 
     }
 
-    /**
-     * Reindexar array
-     */
+    /* Reindexar array */
     $movimentos = array_values($movimentos);
 
     return [$movimentos, null];
 }
 
-/**
- * 4️⃣ Filtrar pontos
- */
+/* Filtrar pontos */
 function filtrarPontosControle(array $resultados, array $fases): array
 {
     $pontos = [];
@@ -320,9 +327,7 @@ function filtrarPontosControle(array $resultados, array $fases): array
     return $pontos;
 }
 
-/**
- * 5️⃣ Render HTML
- */
+/* Render HTML */
 function gerarHTMLStepper(array $pontos, array $ctx): void
 {
     echo '<div class="stepper-wrapper">';
@@ -339,7 +344,7 @@ function gerarHTMLStepper(array $pontos, array $ctx): void
 
         /*
          * DESCRITIVOS 26, 27 e 28
-         *
+         * No caso da não existência de registos
          * Em vez do número de dias, apresenta sempre
          * a Data de Termo Previsto.
          */

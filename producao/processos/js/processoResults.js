@@ -37,8 +37,6 @@ function processoSelected() {
         faturasProcesso(codigo); // Detalhes daas Faturas
         //garantiasProcesso(codigo);
 
-        console.log(params);
-
 };
 
 
@@ -49,7 +47,6 @@ function resumoProcesso(codigo) {
     if (this.readyState == 4 && this.status == 200) {
       data = document.getElementById("lstResumo").innerHTML = this.responseText;
 
-      console.log(data);
     }
   }
   xmlhttp.open("GET","dados/processoResumo.php?codigoProcesso="+codigo,true);
@@ -64,7 +61,7 @@ function fasesProcesso(codigo) {
     if (this.readyState == 4 && this.status == 200) {
       document.getElementById("lstFasesProcesso").innerHTML = this.responseText;
 
-      //console.log("Milestones: ", this.responseText);
+      console.log("Milestones: ", this.responseText);
     }
   }
   xmlhttp.open("GET","dados/processoMilestones.php?codigoProcesso="+codigo,true);
@@ -78,7 +75,6 @@ function resumoCCP(codigo) {
     if (this.readyState == 4 && this.status == 200) {
       document.getElementById("lstResumoCCP").innerHTML = this.responseText;
 
-      //console.log("Milestones: ", this.responseText);
     }
   }
   xmlhttp.open("GET","dados/processoResumoCCP.php?codigoProcesso="+codigo,true);
