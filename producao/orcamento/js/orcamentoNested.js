@@ -144,8 +144,8 @@ $(document).ready(function () {
             <th>Linha ORC.</th>
             <th>Linha SE.</th>
             <th>Designação</th>
-            <th class="text-center">Limite</th>
-            <th class="text-center">Adjudicado</th>
+            <th class="text-center">Processos</th>
+            <th class="text-center">Planeado</th>
             <th class="text-center">Faturado</th>
             <th class="text-center">Saldo</th>
             <th style="width: 45px;">Faturas</th>
@@ -393,11 +393,11 @@ $(document).ready(function () {
           </div>
         </div>
 
-        <!-- ADJUDICADO -->
+        <!-- PLANO DE PAGAMENTOS - inicialmente ADJUDICADO -->
         <div class="col-md-2">
           <div class="card bg-secondary text-white h-100">
             <div class="card-body py-2 px-2">
-              <div class="small">Adjudicado</div>
+              <div class="small">Planeado</div>
 
               <div class="text-right font-weight-bold">
                 ${formatCurrency(totais.totalAdjudicado)}
@@ -1323,15 +1323,15 @@ $(document).ready(function () {
             {content: 'Regime', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}}, processo.regime || '-',
             {content: 'Linha ORC.', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}}, processo.linha_orcamento || '-',
             {content: 'Linha SE.', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}}, processo.linha_se || '-',
-            {content: 'Limite', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}}, 
+            {content: 'Orçamento', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}}, 
               {content: formatCurrency(processo.val_max), styles: {halign: 'right'}}
           ],
           [
-            {content: 'Adjudicado', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
+            {content: 'Planeado', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
               {content: formatCurrency(processo.adjudicado), styles: {halign: 'right'}},
             {content: 'Faturado', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
               {content: formatCurrency(totalFaturadoProcesso), styles: {halign: 'right'}},
-            {content: 'Saldo', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
+            {content: 'Saldo*', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
               {content: formatCurrency(processo.saldo), styles: {halign: 'right'}},
             {content: '', colSpan: 2}
           ],
@@ -1508,9 +1508,9 @@ $(document).ready(function () {
       * Linhas principais do resumo.
       */
       const linhasResumo = [
-        ['Total limite dos processos', '', formatCurrency(totalLimiteGeral)],
-        ['Total adjudicado', '', formatCurrency(totalAdjudicadoGeral)],
-        ['Total faturado', '', formatCurrency(totalFaturadoGeral)],
+        ['Total Orçamentado no Ano', '', formatCurrency(totalLimiteGeral)],
+        ['Total Planeado no Ano', '', formatCurrency(totalAdjudicadoGeral)],
+        ['Total Faturado', '', formatCurrency(totalFaturadoGeral)],
         ['Saldo', '', formatCurrency(totalLimiteGeral - totalAdjudicadoGeral)]
       ];
 
@@ -1767,9 +1767,9 @@ $(document).ready(function () {
       { wch: 24 }, // Regime
       { wch: 14 }, // Linha ORC.
       { wch: 14 }, // Linha SE.
-      { wch: 15 }, // Limite
-      { wch: 15 }, // Adjudicado
-      { wch: 15 }, // Saldo
+      { wch: 15 }, // Orçamentado - inicialmente -> Limite
+      { wch: 15 }, // Planeado no Ano - Inicialmente -> Adjudicado
+      { wch: 15 }, // Saldo - Entre Orçamento e o Plano
       { wch: 40 }, // Entidade
       { wch: 15 }, // Data da fatura
       { wch: 10 }, // Tipo
